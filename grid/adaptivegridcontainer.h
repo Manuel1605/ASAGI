@@ -37,7 +37,7 @@
 #define GRID_ADAPTIVEGRIDCONTAINER_H
 
 #include "gridcontainer.h"
-
+#include "threadhandler.h"
 #include "grid/multigrid.h"
 
 #include <memory>
@@ -78,6 +78,7 @@ public:
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
+        AdaptiveGridContainer(grid::ThreadHandler* handler);
 	virtual ~AdaptiveGridContainer();
 
 	Error setParam(const char* name, const char* value,

@@ -66,6 +66,9 @@ grid::SimpleGridContainer::SimpleGridContainer(unsigned int count,
 	for (unsigned int i = 0; i < levels; i++)
 		m_grids[i] = createGrid(hint, i);
 }
+grid::SimpleGridContainer::SimpleGridContainer(grid::ThreadHandler* handler) : GridContainer(handler){
+        
+}
 
 grid::SimpleGridContainer::~SimpleGridContainer()
 {

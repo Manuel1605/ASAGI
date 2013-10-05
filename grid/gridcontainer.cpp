@@ -34,7 +34,7 @@
  */
 
 #include "gridcontainer.h"
-
+#include "threadhandler.h"
 #include "grid/localcachegrid.h"
 #include "grid/localstaticgrid.h"
 #include "grid/passthroughgrid.h"
@@ -169,7 +169,9 @@ grid::GridContainer::GridContainer(unsigned int count,
 	m_mpiRank = 0;
 	m_mpiSize = 1;
 }
+grid::GridContainer::GridContainer(grid::ThreadHandler* handler) : m_levels(1){
 
+}
 
 grid::GridContainer::~GridContainer()
 {

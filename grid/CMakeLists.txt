@@ -7,7 +7,8 @@ set( gridSources
 	localstaticgrid.cpp
 	multigrid.cpp
 	passthroughgrid.cpp
-	simplegridcontainer.cpp )
+	simplegridcontainer.cpp
+        threadhandler.cpp )
 if( NOT NOMPI )
 	set( gridSources
 		${gridSources}

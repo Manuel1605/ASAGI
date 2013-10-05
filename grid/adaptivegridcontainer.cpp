@@ -72,6 +72,9 @@ grid::AdaptiveGridContainer::AdaptiveGridContainer(unsigned int count,
 	
 	m_ids = 0;
 }
+grid::AdaptiveGridContainer::AdaptiveGridContainer(grid::ThreadHandler* handler) : GridContainer(handler),m_hint(handler->m_hint){
+
+}
 
 
 grid::AdaptiveGridContainer::~AdaptiveGridContainer()

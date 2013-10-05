@@ -147,6 +147,8 @@ public:
 	virtual ~Grid() {}	// This one does nothing, but destructors of
 				// child classes are only called if we have it
 				// here
+        
+        
 	
 #ifndef ASAGI_NOMPI
 	/**
@@ -416,6 +418,12 @@ public:
 	 */
 	virtual unsigned long getCounter(const char *name,
 		unsigned int level = 0) = 0;
+        
+        
+        /** 
+	 * Creates a GridContainer for a Thread.
+         */
+        virtual bool registerThread(){ return false;};
 
 public:
 	/**
@@ -429,6 +437,19 @@ public:
 	 */
 	static asagi::Grid* create(Type type = FLOAT,
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
+        
+        /**
+	 * @ingroup cxx_interface
+	 * 
+	 * Creates a new threadHandler
+	 * 
+	 * @param type The type of the grid
+	 * @param hint A combination of hints
+	 * @param levels The number of level this grid should have
+         * @param Count of Threads
+	 */
+	static asagi::Grid* createThreadHandler(Type type = FLOAT,
+		unsigned int hint=NO_HINT, unsigned int levels=1, unsigned int tCount=4);
 	
 	/**
 	 * @ingroup cxx_interface
@@ -460,9 +481,9 @@ public:
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
-	
-	/**
-	 * @ingroup cxx_interface
+        
+         /**
+      	 * @ingroup cxx_interface
 	 * 
 	 * Frees all memory resources assciated with @c grid. After a grid is
 	 * closed you cannot access any values and you can not reopen another
@@ -483,6 +504,8 @@ public:
 typedef asagi::Grid grid_handle;
 typedef asagi::Grid::Type grid_type;
 typedef asagi::Grid::Error grid_error;
+
+
 #else
 /**
  * @ingroup c_interface
@@ -574,6 +597,7 @@ grid_handle* grid_create_struct(unsigned int count,
 	unsigned long displacements[],
 	grid_type types[],
 	unsigned int hint, unsigned int levels);
+
 
 #ifndef ASAGI_NOMPI
 /**
@@ -767,6 +791,7 @@ double grid_get_double_3d(grid_handle* handle, double x, double y, double z,
 void grid_get_buf_3d(grid_handle* handle,void* buf, double x, double y,
 	double z, unsigned int level);
 
+bool register_thread(grid_handle* handle);
 /**
  * @ingroup c_interface
  * 

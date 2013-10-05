@@ -37,6 +37,7 @@
 
 #include "grid/simplegridcontainer.h"
 #include "grid/adaptivegridcontainer.h"
+#include "grid/threadhandler.h"
 
 // Static c++ functions
 asagi::Grid* asagi::Grid::create(Type type, unsigned int hint,
@@ -45,6 +46,9 @@ asagi::Grid* asagi::Grid::create(Type type, unsigned int hint,
 	if (hint & ADAPTIVE)
 		return new grid::AdaptiveGridContainer(type, false, hint, levels);
 	return new grid::SimpleGridContainer(type, false, hint, levels);
+}
+asagi::Grid* asagi::Grid::createThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount){
+        return new grid::ThreadHandler(type, hint, levels, tCount);
 }
 
 asagi::Grid* asagi::Grid::createArray(Type basicType, unsigned int hint,
@@ -227,6 +231,12 @@ void grid_get_buf_3d(grid_handle* handle, void* buf, double x, double y, double 
 	unsigned int level)
 {
 	handle->getBuf3D(buf, x, y, z, level);
+}
+
+
+// Thread Functions
+bool register_thread(grid_handle* handle){
+    return handle->registerThread();
 }
 
 // destructor

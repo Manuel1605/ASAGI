@@ -33,14 +33,13 @@
  * @copyright 2012 Sebastian Rettenberger <rettenbs@in.tum.de>
  */
 
-#ifndef GRID_GRIDCONTAINER_H
-#define GRID_GRIDCONTAINER_H
+#ifndef GRID_THREADHANDLER_H
+#define GRID_THREADHANDLER_H
 
-#include <asagi.h>
+#include <../include/asagi.h>
 
-#include "threadhandler.h"
-#include "fortran/pointerarray.h"
-#include "types/type.h"
+#include "../fortran/pointerarray.h"
+#include "../types/type.h"
 
 namespace grid
 {
@@ -50,11 +49,17 @@ class Grid;
 /**
  * A container that stores multiple levels of a grid
  */
-class GridContainer : public asagi::Grid
+class ThreadHandler : public asagi::Grid
 {
 public:
 	/** Possible positions of the values in a grid */
 	enum ValuePos { CELL_CENTERED, VERTEX_CENTERED };
+        /** Number of levels the grid container has */
+	const unsigned int m_levels;
+        /** Optimization hint */
+        const unsigned int m_hint;
+        /** Number of threads this handler has to manage*/
+        const unsigned int m_tCount;
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
 	int m_id;
@@ -76,10 +81,35 @@ private:
 	
 	/** True if the container should skip MPI calls like MPI_Comm_dup */
 	bool m_noMPI;
+        
+        /**
+         * Id of the Masterthread, which handles the MPI Connection
+         */
+        static pthread_t m_masterthreadId;
+        
+        /**
+         * Mutex for Thread Safety
+         */
+        static pthread_mutex_t mutex;
+        
+        /**
+         * Handle of the Masterthread
+         */
+        asagi::Grid* masterHandle;
+        
+        /**
+         * Array of Threadhandles
+         * TODO: Keep the Length dynamically
+         */
+        asagi::Grid* threadHandle[4];
+        
+        /**
+         * Counts how many Threads are already registered
+         */
+        unsigned int m_count;
 
 protected:
-	/** Number of levels this grid container has */
-	const unsigned int m_levels;
+	
 	
 	/** Minimum in x dimension (set by subclasses) */
 	double m_minX;
@@ -98,16 +128,14 @@ protected:
 	ValuePos m_valuePos;
         
 public:
-	GridContainer(Type type, bool isArray = false,
-		unsigned int hint = NO_HINT,
-		unsigned int levels = 1);
-	GridContainer(unsigned int count,
-		unsigned int blockLength[],
-		unsigned long displacements[],
-		asagi::Grid::Type types[],
-		unsigned int hint = NO_HINT, unsigned int levels = 1);
-        GridContainer(grid::ThreadHandler* handler);
-	virtual ~GridContainer();
+	ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount);
+	virtual ~ThreadHandler();
+        
+        
+        /**
+         * TODO 
+         */
+        virtual bool registerThread();
 	
 #ifndef ASAGI_NOMPI
 	Error setComm(MPI_Comm comm = MPI_COMM_WORLD);
@@ -201,6 +229,22 @@ public:
 	{
 		getBuf3D(buf, x, y, 0, level);
 	}
+        unsigned char getByte3D(double x, double y = 0, double z = 0,
+		unsigned int level = 0);
+	int getInt3D(double x, double y = 0, double z = 0,
+		unsigned int level = 0);
+	long getLong3D(double x, double y = 0, double z = 0,
+		unsigned int level = 0);
+	float getFloat3D(double x, double y = 0, double z = 0,
+		unsigned int level = 0);
+	double getDouble3D(double x, double y = 0, double z = 0,
+		unsigned int level = 0);
+	void getBuf3D(void* buf, double x, double y = 0, double z = 0,
+		unsigned int level = 0);
+	
+	bool exportPng(const char* filename, unsigned int level = 0);
+
+	unsigned long getCounter(const char* name, unsigned int level = 0);
 	
 #ifndef ASAGI_NOMPI
 	/**
@@ -259,13 +303,13 @@ protected:
 
 private:
 	/** The index -> pointer translation array */
-	static fortran::PointerArray<GridContainer> m_pointers;
+	static fortran::PointerArray<ThreadHandler> m_pointers;
 
 public:
 	/**
 	 * Converts a Fortran index to a c/c++ pointer
 	 */
-	static GridContainer* f2c(int i)
+	static ThreadHandler* f2c(int i)
 	{
 		return m_pointers.get(i);
 	}
@@ -273,4 +317,5 @@ public:
 
 }
 
-#endif // GRID_CONTAINER_GRIDCONTAINER_H
+#endif // THREAD_GRID_CONTAINER_THREADGRIDCONTAINER_H
+
