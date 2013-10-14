@@ -37,13 +37,13 @@
 #include "adaptivegridcontainer.h"
 #include "simplegridcontainer.h"
 #include <pthread.h>
+#include <iostream>
 
 #ifndef ASAGI_NOMPI
 #endif // ASAGI_NOMPI
 pthread_t grid::ThreadHandler::m_masterthreadId;
 pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
 unsigned int count;
-
 /**
  * @param type The basic type of the values
  * @param isArray True if the type is an array, false if it is a basic
@@ -52,15 +52,9 @@ unsigned int count;
  * @param levels The number of levels
  * @param tCount The amount of threads
  */
-grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_tCount(tCount) {
-    pthread_mutex_lock(&mutex);
+grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_tCount(tCount), m_type1(&type) {
     count = 0;
-    if (hint & ADAPTIVE)
-        masterHandle = new grid::AdaptiveGridContainer(type, hint, levels);
-    else
-        masterHandle = new grid::SimpleGridContainer(type, hint, levels);
-    m_masterthreadId = pthread_self();
-    pthread_mutex_unlock(&mutex);
+    gridHandle = new asagi::Grid*[tCount];
 }
 
 /** 
@@ -68,57 +62,100 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
  */
 bool grid::ThreadHandler::registerThread() {
     pthread_mutex_lock(&mutex);
+    if(count==0)
+        m_masterthreadId = pthread_self();
     if (m_hint & ADAPTIVE)
-        threadHandle[count] = new grid::AdaptiveGridContainer(this);
+         gridHandle[count] = new grid::AdaptiveGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, m_masterthreadId);
     else
-        threadHandle[count] = new grid::SimpleGridContainer(this);
+         gridHandle[count] = new grid::SimpleGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, m_masterthreadId);
+    threadHandle[count] = pthread_self();
+    
     count++;
     pthread_mutex_unlock(&mutex);
     return true;
 }
 
 /** 
- * Creates a GridContainer for a Thread.
+ * Destructor
  */
 grid::ThreadHandler::~ThreadHandler() {
 }
 
 unsigned char grid::ThreadHandler::getByte3D(double x, double y, double z,
         unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getByte2D(x,y);
+        }
+    }
     return '0';
 
 }
 
 int grid::ThreadHandler::getInt3D(double x, double y, double z,
         unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getInt2D(x,y);
+        }
+    }
     return 0;
 }
 
 long grid::ThreadHandler::getLong3D(double x, double y, double z,
         unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getLong2D(x,y);
+        }
+    }
     return 0;
 }
 
-float grid::ThreadHandler::getFloat3D(double x, double, double,
+float grid::ThreadHandler::getFloat3D(double x, double y, double z,
         unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getFloat2D(x,y);
+        }
+    }
     return 0.0;
 }
 
 double grid::ThreadHandler::getDouble3D(double x, double y, double z,
         unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getDouble2D(x,y);
+        }
+    }
     return 0.0;
 }
 
 void grid::ThreadHandler::getBuf3D(void* buf, double x, double y, double z,
         unsigned int level) {
-
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getBuf2D(buf, x,y);
+        }
+    }
 }
 
 bool grid::ThreadHandler::exportPng(const char* filename, unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->exportPng(filename, level);
+        }
+    }
     return false;
 }
 
 unsigned long grid::ThreadHandler::getCounter(const char* name, unsigned int level) {
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            return gridHandle[i]->getCounter(name, level);
+        }
+    }
     return 0;
 }
 #ifndef ASAGI_NOMPI
@@ -162,15 +199,22 @@ asagi::Grid::Error grid::ThreadHandler::setParam(const char* name,
 
 asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         unsigned int level) {
+    pthread_mutex_lock(&mutex);
     assert(level < m_levels);
-
+    for(unsigned int i=0; i< sizeof(threadHandle); i++){
+        if(pthread_equal(threadHandle[i], pthread_self())){
+            gridHandle[i]->open(filename, level);
+            break;
+        }
+    }
+    pthread_mutex_unlock(&mutex);
 #ifdef ASAGI_NOMPI
     return SUCCESS;
 #else // ASAGI_NOMPI
     // Make sure we have our own communicator
-    if (m_noMPI)
+    //if (m_noMPI)
         return SUCCESS;
-    return setComm();
+    //return setComm();
 #endif // ASAGI_NOMPI
   
 }

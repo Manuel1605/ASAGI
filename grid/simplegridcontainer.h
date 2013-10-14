@@ -59,7 +59,10 @@ public:
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
-        SimpleGridContainer(grid::ThreadHandler* handler);
+        SimpleGridContainer(Type type, bool isArray,
+		unsigned int hint,
+		unsigned int levels,
+                unsigned long int masterthreadId);
 	virtual ~SimpleGridContainer();
 	
 	Error setParam(const char* name, const char* value,

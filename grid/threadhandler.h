@@ -60,6 +60,13 @@ public:
         const unsigned int m_hint;
         /** Number of threads this handler has to manage*/
         const unsigned int m_tCount;
+        
+        const asagi::Grid::Type* m_type1;
+        
+        /**
+         * Id of the Masterthread, which handles the MPI Connection
+         */
+        static pthread_t m_masterthreadId;
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
 	int m_id;
@@ -82,10 +89,6 @@ private:
 	/** True if the container should skip MPI calls like MPI_Comm_dup */
 	bool m_noMPI;
         
-        /**
-         * Id of the Masterthread, which handles the MPI Connection
-         */
-        static pthread_t m_masterthreadId;
         
         /**
          * Mutex for Thread Safety
@@ -98,10 +101,16 @@ private:
         asagi::Grid* masterHandle;
         
         /**
-         * Array of Threadhandles
-         * TODO: Keep the Length dynamically
+         * Array of threadHandles
          */
-        asagi::Grid* threadHandle[4];
+        pthread_t threadHandle[4];
+        
+        /**
+         * Array of Gridhandles
+         */
+        asagi::Grid** gridHandle;
+        
+        
         
         /**
          * Counts how many Threads are already registered

@@ -256,6 +256,7 @@ public:
 
 protected:
 	grid::Grid* createGrid(unsigned int hint, unsigned int id) const;
+        grid::Grid* createGridForThread(unsigned int hint, unsigned int id, unsigned long int masterthreadId) const;
 
 private:
 	/** The index -> pointer translation array */

@@ -78,7 +78,10 @@ public:
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
-        AdaptiveGridContainer(grid::ThreadHandler* handler);
+        AdaptiveGridContainer(Type type, bool isArray,
+		unsigned int hint,
+		unsigned int level,
+                unsigned long int masterthreadId);
 	virtual ~AdaptiveGridContainer();
 
 	Error setParam(const char* name, const char* value,
