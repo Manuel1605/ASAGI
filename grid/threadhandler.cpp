@@ -68,8 +68,9 @@ bool grid::ThreadHandler::registerThread() {
          gridHandle[count] = new grid::AdaptiveGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, m_masterthreadId);
     else
          gridHandle[count] = new grid::SimpleGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, m_masterthreadId);
-    threadHandle[count] = pthread_self();
-    
+    gridMap[pthread_self()] = gridHandle[count];
+    /* not sure if I need this */
+    // threadHandle[count] = pthread_self();
     count++;
     pthread_mutex_unlock(&mutex);
     return true;
@@ -83,80 +84,41 @@ grid::ThreadHandler::~ThreadHandler() {
 
 unsigned char grid::ThreadHandler::getByte3D(double x, double y, double z,
         unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getByte2D(x,y);
-        }
-    }
-    return '0';
-
+    return gridMap[pthread_self()]->getByte2D(x,y);
 }
 
 int grid::ThreadHandler::getInt3D(double x, double y, double z,
         unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getInt2D(x,y);
-        }
-    }
-    return 0;
+    return gridMap[pthread_self()]->getInt2D(x,y);
 }
 
 long grid::ThreadHandler::getLong3D(double x, double y, double z,
         unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getLong2D(x,y);
-        }
-    }
-    return 0;
+    return gridMap[pthread_self()]->getLong2D(x,y);
 }
 
 float grid::ThreadHandler::getFloat3D(double x, double y, double z,
         unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getFloat2D(x,y);
-        }
-    }
-    return 0.0;
+    return gridMap[pthread_self()]->getFloat2D(x,y);
 }
 
 double grid::ThreadHandler::getDouble3D(double x, double y, double z,
         unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getDouble2D(x,y);
-        }
-    }
-    return 0.0;
+    return gridMap[pthread_self()]->getDouble2D(x,y);
+
 }
 
 void grid::ThreadHandler::getBuf3D(void* buf, double x, double y, double z,
         unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getBuf2D(buf, x,y);
-        }
-    }
+    return gridMap[pthread_self()]->getBuf2D(buf, x,y);
 }
 
 bool grid::ThreadHandler::exportPng(const char* filename, unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->exportPng(filename, level);
-        }
-    }
-    return false;
+    return gridMap[pthread_self()]->exportPng(filename, level);
 }
 
 unsigned long grid::ThreadHandler::getCounter(const char* name, unsigned int level) {
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            return gridHandle[i]->getCounter(name, level);
-        }
-    }
-    return 0;
+    return gridMap[pthread_self()]->getCounter(name, level);
 }
 #ifndef ASAGI_NOMPI
 
@@ -201,12 +163,7 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         unsigned int level) {
     pthread_mutex_lock(&mutex);
     assert(level < m_levels);
-    for(unsigned int i=0; i< sizeof(threadHandle); i++){
-        if(pthread_equal(threadHandle[i], pthread_self())){
-            gridHandle[i]->open(filename, level);
-            break;
-        }
-    }
+    gridMap[pthread_self()]->open(filename,level);
     pthread_mutex_unlock(&mutex);
 #ifdef ASAGI_NOMPI
     return SUCCESS;

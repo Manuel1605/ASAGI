@@ -40,6 +40,7 @@
 
 #include "../fortran/pointerarray.h"
 #include "../types/type.h"
+#include <map>
 
 namespace grid
 {
@@ -103,13 +104,14 @@ private:
         /**
          * Array of threadHandles
          */
-        pthread_t threadHandle[4];
+        //pthread_t threadHandle[4];
         
         /**
          * Array of Gridhandles
          */
         asagi::Grid** gridHandle;
-        
+ 
+        std::map<pthread_t, asagi::Grid*> gridMap;
         
         
         /**
