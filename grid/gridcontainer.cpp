@@ -37,6 +37,7 @@
 #include "threadhandler.h"
 #include "grid/localcachegrid.h"
 #include "grid/localstaticgrid.h"
+
 #include "grid/passthroughgrid.h"
 #ifndef ASAGI_NOMPI
 #include "grid/diststaticgrid.h"
@@ -169,19 +170,6 @@ grid::GridContainer::GridContainer(unsigned int count,
 	m_mpiRank = 0;
 	m_mpiSize = 1;
 }
-grid::GridContainer::GridContainer(grid::ThreadHandler* handler) : m_levels(handler->m_levels){
-    assert(levels > 0); // 0 levels don't make sense
-	
-	// Prepare for fortran <-> c translation
-	m_id = m_pointers.add(this);
-	
-#ifdef ASAGI_NOMPI
-	m_noMPI = true;
-#else // ASAGI_NOMPI
-	m_noMPI = handler->m_hint & NOMPI;
-	m_communicator = MPI_COMM_NULL;
-#endif // ASAGI_NOMPI
-}
 
 grid::GridContainer::~GridContainer()
 {
@@ -276,30 +264,3 @@ grid::Grid* grid::GridContainer::createGrid(unsigned int hint,
 	return new DistStaticGrid(*this, hint);
 #endif // ASAGI_NOMPI
 }
-
-/**
- * Creates a new grid according to the hints
- */
-grid::Grid* grid::GridContainer::createGridForThread(
-	unsigned int hint, unsigned int id, unsigned long int masterthreadId) const
-{
-	/*if (hint & PASS_THROUGH)
-		return new PassThroughGrid(*this, hint);*/
-#ifndef ASAGI_NOMPI
-    if(pthread_equal(masterthreadId,pthread_self()) && !(hint & NOMPI)){
-#endif // ASAGI_NOMPI
-        if (hint & LARGE_GRID)
-            return new DistCacheGrid(*this, hint, id);
-        return new DistStaticGrid(*this, hint);
-#ifndef ASAGI_NOMPI
-    }
-#endif // ASAGI_NOMPI
-    else{
-       if(hint & SMALL_CACHE)
-            return new LocalCacheGrid(*this, hint);
-        return new LocalStaticGrid(*this, hint); 
-    }
-}
-    // Fortran <-> c translation array
-fortran::PointerArray<grid::GridContainer>
-	grid::GridContainer::m_pointers;

@@ -59,15 +59,28 @@ public:
 	const unsigned int m_levels;
         /** Optimization hint */
         const unsigned int m_hint;
-        /** Number of threads this handler has to manage*/
-        const unsigned int m_tCount;
         
         const asagi::Grid::Type* m_type1;
         
+        
+        static unsigned char* localStaticGridMemPtr;
+        
+        static unsigned char* localCacheGridMemPtr;
+
         /**
          * Id of the Masterthread, which handles the MPI Connection
          */
-        static pthread_t m_masterthreadId;
+        static pthread_t masterthreadId;
+        
+        /**
+         * Array of threadHandles
+         */
+        static pthread_t* threadHandle;
+        
+        /** Number of threads this handler has to manage*/
+        static unsigned int tCount;
+        bool regCompleted;
+
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
 	int m_id;
@@ -101,10 +114,7 @@ private:
          */
         asagi::Grid* masterHandle;
         
-        /**
-         * Array of threadHandles
-         */
-        //pthread_t threadHandle[4];
+        
         
         /**
          * Array of Gridhandles

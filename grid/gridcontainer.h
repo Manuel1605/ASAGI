@@ -101,12 +101,13 @@ public:
 	GridContainer(Type type, bool isArray = false,
 		unsigned int hint = NO_HINT,
 		unsigned int levels = 1);
+        GridContainer(unsigned int hint = NO_HINT,
+		unsigned int levels = 1);
 	GridContainer(unsigned int count,
 		unsigned int blockLength[],
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
-        GridContainer(grid::ThreadHandler* handler);
 	virtual ~GridContainer();
 	
 #ifndef ASAGI_NOMPI
@@ -218,7 +219,7 @@ public:
 	int getMPIRank() const
 	{
 		return m_mpiRank;
-	}
+	}        
 	
 	/**
 	 * @return The size of the MPI communicator
@@ -256,7 +257,6 @@ public:
 
 protected:
 	grid::Grid* createGrid(unsigned int hint, unsigned int id) const;
-        grid::Grid* createGridForThread(unsigned int hint, unsigned int id, unsigned long int masterthreadId) const;
 
 private:
 	/** The index -> pointer translation array */

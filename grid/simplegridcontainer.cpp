@@ -21,7 +21,7 @@
  *  der GNU General Public License, wie von der Free Software Foundation,
  *  Version 3 der Lizenz oder (nach Ihrer Option) jeder spaeteren
  *  veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
- *
+ *op
  *  ASAGI wird in der Hoffnung, dass es nuetzlich sein wird, aber
  *  OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
  *  Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN
@@ -67,11 +67,11 @@ grid::SimpleGridContainer::SimpleGridContainer(unsigned int count,
 		m_grids[i] = createGrid(hint, i);
 }
 grid::SimpleGridContainer::SimpleGridContainer(asagi::Grid::Type type, bool isArray,
-	unsigned int hint, unsigned int levels, unsigned long int masterthreadId) : GridContainer(type, isArray, hint, levels){
+	unsigned int hint, unsigned int levels, bool isNuma) : GridContainer(type, isArray, hint, levels){
         
         m_grids = new grid::Grid*[m_levels];
 	for (unsigned int i = 0; i < levels; i++)
-		m_grids[i] = createGridForThread(hint, i, masterthreadId);
+		m_grids[i] = createGrid(hint, i);
 }
 
 grid::SimpleGridContainer::~SimpleGridContainer()

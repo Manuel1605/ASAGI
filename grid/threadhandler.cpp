@@ -36,14 +36,22 @@
 #include "threadhandler.h"
 #include "adaptivegridcontainer.h"
 #include "simplegridcontainer.h"
+#include "numagridcontainer.h"
 #include <pthread.h>
 #include <iostream>
 
 #ifndef ASAGI_NOMPI
 #endif // ASAGI_NOMPI
-pthread_t grid::ThreadHandler::m_masterthreadId;
-pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
 unsigned int count;
+pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
+unsigned char* grid::ThreadHandler::localStaticGridMemPtr;
+unsigned char* grid::ThreadHandler::localCacheGridMemPtr;
+pthread_t* grid::ThreadHandler::threadHandle;
+unsigned int grid::ThreadHandler::tCount;
+pthread_t grid::ThreadHandler::masterthreadId;
+
+
+
 /**
  * @param type The basic type of the values
  * @param isArray True if the type is an array, false if it is a basic
@@ -52,9 +60,11 @@ unsigned int count;
  * @param levels The number of levels
  * @param tCount The amount of threads
  */
-grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_tCount(tCount), m_type1(&type) {
+grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(&type) {
     count = 0;
+    ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
+    threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
 }
 
 /** 
@@ -63,15 +73,18 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
 bool grid::ThreadHandler::registerThread() {
     pthread_mutex_lock(&mutex);
     if(count==0)
-        m_masterthreadId = pthread_self();
-    if (m_hint & ADAPTIVE)
-         gridHandle[count] = new grid::AdaptiveGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, m_masterthreadId);
-    else
-         gridHandle[count] = new grid::SimpleGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, m_masterthreadId);
+        masterthreadId = pthread_self();
+    threadHandle[count] = pthread_self();
+    if (m_hint & ADAPTIVE){
+         gridHandle[count] = new grid::AdaptiveGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, masterthreadId);
+    }
+    else{
+         gridHandle[count] = new grid::NumaGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels);
+    }
     gridMap[pthread_self()] = gridHandle[count];
-    /* not sure if I need this */
-    // threadHandle[count] = pthread_self();
     count++;
+    if(count==tCount)
+        regCompleted=true;
     pthread_mutex_unlock(&mutex);
     return true;
 }
@@ -162,14 +175,12 @@ asagi::Grid::Error grid::ThreadHandler::setParam(const char* name,
 asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         unsigned int level) {
     pthread_mutex_lock(&mutex);
-    assert(level < m_levels);
-    gridMap[pthread_self()]->open(filename,level);
-    pthread_mutex_unlock(&mutex);
-#ifdef ASAGI_NOMPI
-    return SUCCESS;
-#else // ASAGI_NOMPI
-    // Make sure we have our own communicator
-    //if (m_noMPI)
+        assert(level < m_levels);
+        gridMap[pthread_self()]->open(filename,level);
+    #ifdef ASAGI_NOMPI
+        return SUCCESS;
+    #else // ASAGI_NOMPI
+       pthread_mutex_unlock(&mutex);
         return SUCCESS;
     //return setComm();
 #endif // ASAGI_NOMPI

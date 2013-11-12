@@ -62,7 +62,7 @@ public:
         SimpleGridContainer(Type type, bool isArray,
 		unsigned int hint,
 		unsigned int levels,
-                unsigned long int masterthreadId);
+                bool isNuma);
 	virtual ~SimpleGridContainer();
 	
 	Error setParam(const char* name, const char* value,
