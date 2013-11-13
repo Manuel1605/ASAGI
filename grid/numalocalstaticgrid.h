@@ -63,7 +63,7 @@ private:
 	const allocator::Allocator<unsigned char> &m_allocator;
 
 public:
-	NumaLocalStaticGrid(const GridContainer &container,
+	NumaLocalStaticGrid(const NumaGridContainer &container,
 		unsigned int hint = asagi::Grid::NO_HINT,
                 const allocator::Allocator<unsigned char> &allocator
 			= allocator::NumaAllocator<unsigned char>::allocator);

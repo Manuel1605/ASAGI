@@ -63,13 +63,13 @@ asagi::Grid::Error grid::NumaLocalCacheGrid::init()
             error = m_allocator.allocate(getType().getSize() * blockSize * getBlocksPerNode(), m_cache);
             if (error != asagi::Grid::SUCCESS)
                     return error;
-            ThreadHandler::localCacheGridMemPtr = m_cache;
+            ThreadHandler::localCacheGridMemPtr[pthread_self()] = m_cache;
         }
         else{
             for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
                 if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {
-                    m_cache = ThreadHandler::localCacheGridMemPtr + ((((getType().getSize() * blockSize * getBlocksPerNode()) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
-                   // printf("Slavepointer: %p\n", m_data);
+                    m_cache = ThreadHandler::localCacheGridMemPtr[ThreadHandler::masterthreadId] + ((((getType().getSize() * blockSize * getBlocksPerNode()) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
+                    ThreadHandler::localCacheGridMemPtr[pthread_self()]=m_cache;
                 }
             }
         }

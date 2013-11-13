@@ -42,7 +42,7 @@
  * @see Grid::Grid()
  */
 
-grid::NumaLocalStaticGrid::NumaLocalStaticGrid(const GridContainer &container,
+grid::NumaLocalStaticGrid::NumaLocalStaticGrid(const NumaGridContainer &container,
         unsigned int hint, const allocator::Allocator<unsigned char> &allocator)
 : NumaGrid(container, hint),
 m_allocator(allocator) {
@@ -61,12 +61,11 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
 
     //the first thread allocates the memory.
     if (pthread_equal(ThreadHandler::masterthreadId, pthread_self())) {
-        //printf("master");
         asagi::Grid::Error error;
         error = m_allocator.allocate(getType().getSize() * blockSize * masterBlockCount, m_data);
         if (error != asagi::Grid::SUCCESS)
             return error;
-        ThreadHandler::localStaticGridMemPtr = m_data;
+        ThreadHandler::localStaticGridMemPtr[pthread_self()] = m_data;
 
         // Load the blocks from the file, which we control
         for (unsigned long i = 0; i < masterBlockCount; i++) {
@@ -91,8 +90,8 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
     } else {
         for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
             if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {
-                m_data = ThreadHandler::localStaticGridMemPtr + ((((getType().getSize() * blockSize * masterBlockCount) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
-               // printf("Slavepointer: %p\n", m_data);
+                m_data = ThreadHandler::localStaticGridMemPtr[ThreadHandler::masterthreadId] + ((((getType().getSize() * blockSize * masterBlockCount) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
+                ThreadHandler::localStaticGridMemPtr[pthread_self()]=m_data;
             }
         }
     }
@@ -109,17 +108,11 @@ void grid::NumaLocalStaticGrid::getAt(void* buf, types::Type::converter_t conver
     NDBG_UNUSED(remoteMPIRank);
     unsigned long offset = getBlockThreadOffset(block);
     
-   /* printf("Blocksize: %lu\n", blockSize);
-    printf("Block: %lu\n", block);
-    printf("remoteRank: %i\n", remoteRank);
-    printf("Offset: %lu\n", offset);*/
-    
     // Offset inside the block
     x %= getBlockSize(0);
     y %= getBlockSize(1);
     z %= getBlockSize(2);
     assert(remoteMPIRank == getMPIRank());
-    printf("RemoteThread: %lu, curr Thread: %lu", remoteThreadId, pthread_self());
     assert(remoteThreadId == pthread_self());
     if(pthread_equal(remoteThreadId, pthread_self())){
         (getType().*converter)(&m_data[getType().getSize() *

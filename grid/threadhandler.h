@@ -63,9 +63,15 @@ public:
         const asagi::Grid::Type* m_type1;
         
         
-        static unsigned char* localStaticGridMemPtr;
+        /*unsigned char* localStaticGridMemPtr;
         
-        static unsigned char* localCacheGridMemPtr;
+        unsigned char* localCacheGridMemPtr;*/
+        
+        static std::map<pthread_t, unsigned char*> localStaticGridMemPtr;
+        static std::map<pthread_t, unsigned char*> localCacheGridMemPtr;
+
+        
+        static MPI_Win mpiWindow;
 
         /**
          * Id of the Masterthread, which handles the MPI Connection

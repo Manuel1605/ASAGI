@@ -44,12 +44,14 @@
 #endif // ASAGI_NOMPI
 unsigned int count;
 pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
-unsigned char* grid::ThreadHandler::localStaticGridMemPtr;
-unsigned char* grid::ThreadHandler::localCacheGridMemPtr;
+/*unsigned char* grid::ThreadHandler::localStaticGridMemPtr;
+unsigned char* grid::ThreadHandler::localCacheGridMemPtr; */
+std::map<pthread_t, unsigned char*> grid::ThreadHandler::localStaticGridMemPtr;
+std::map<pthread_t, unsigned char*>  grid::ThreadHandler::localCacheGridMemPtr; 
 pthread_t* grid::ThreadHandler::threadHandle;
 unsigned int grid::ThreadHandler::tCount;
 pthread_t grid::ThreadHandler::masterthreadId;
-
+MPI_Win grid::ThreadHandler::mpiWindow;
 
 
 /**
@@ -65,6 +67,9 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
     ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
     threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
+   /* localCacheGridMemPtr = (unsigned char*) malloc(size of(unsigned char)*tCount);
+    localStaticGridMemPtr = (unsigned char*) malloc(size of(unsigned char)*tCount); */
+
 }
 
 /** 

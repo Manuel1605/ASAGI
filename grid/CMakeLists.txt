@@ -12,6 +12,7 @@ set( gridSources
         threadhandler.cpp 
         numalocalstaticgrid.cpp
         numalocalcachegrid.cpp
+        numadiststaticgrid.cpp
         numagrid.cpp
         )
 if( NOT NOMPI )

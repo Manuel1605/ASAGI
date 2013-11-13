@@ -36,6 +36,7 @@
 #include "numagridcontainer.h"
 #include "numalocalstaticgrid.h"
 #include "numalocalcachegrid.h"
+#include "numadiststaticgrid.h"
 
 #include <algorithm>
 
@@ -158,7 +159,7 @@ asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm)
 grid::Grid* grid::NumaGridContainer::createGrid(
 	unsigned int hint, unsigned int id) const
 {
-        return new NumaLocalCacheGrid(*this, hint);
+        return new NumaDistStaticGrid(*this, hint);
 }
     // Fortran <-> c translation array
 fortran::PointerArray<grid::GridContainer>
