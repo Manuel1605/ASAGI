@@ -30,7 +30,8 @@
  *  Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
- * @copyright 2012 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
 #ifndef GRID_THREADHANDLER_H
@@ -48,7 +49,8 @@ namespace grid
 class Grid;
 
 /**
- * A container that stores multiple levels of a grid
+ * A Handler class which is responsible for registering threads.
+ * Threads can communicate only via this class.
  */
 class ThreadHandler : public asagi::Grid
 {
@@ -59,33 +61,33 @@ public:
 	const unsigned int m_levels;
         /** Optimization hint */
         const unsigned int m_hint;
-        
+        /** Type of the grid */
         const asagi::Grid::Type m_type1;
         
-        
-        /*unsigned char* localStaticGridMemPtr;
-        
-        unsigned char* localCacheGridMemPtr;*/
-        
-        static std::map<pthread_t, unsigned char**> cachePtr;
-        static std::map<pthread_t, unsigned char**> staticPtr;
-
-        
-        static MPI_Win* mpiWindow;
-
-        /**
-         * Id of the Masterthread, which handles the MPI Connection
+        /* The following static variables are there for inter Thread communication.
+         * Every Thread can access and modify this variables.
          */
+        
+        /** Static Map. Pointer for NumaLocalCacheGrid */
+        static std::map<pthread_t, unsigned char**> cachePtr;
+        
+        /** Static Map. Pointer for NumaLocalStaticGrid */
+        static std::map<pthread_t, unsigned char**> staticPtr;
+#ifndef ASAGI_NOMPI
+        /** Static MPI Window. Pointer for NumaDistStaticGrid */
+        static MPI_Win* mpiWindow;
+        
+        /** Static MPI Communicator.*/
+        static MPI_Comm mpiCommunicator;
+#endif
+        /** Id of the Masterthread */
         static pthread_t masterthreadId;
         
-        /**
-         * Array of threadHandles
-         */
+        /** Array of threadHandles */
         static pthread_t* threadHandle;
         
         /** Number of threads this handler has to manage*/
         static unsigned int tCount;
-        bool regCompleted;
 
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
@@ -162,7 +164,7 @@ public:
         /**
          * TODO 
          */
-        virtual bool registerThread();
+        virtual void registerThread();
 	
 #ifndef ASAGI_NOMPI
 	Error setComm(MPI_Comm comm = MPI_COMM_WORLD);

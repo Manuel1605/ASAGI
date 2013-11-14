@@ -38,7 +38,6 @@
 
 #include <asagi.h>
 
-#include "threadhandler.h"
 #include "fortran/pointerarray.h"
 #include "types/type.h"
 
@@ -59,15 +58,6 @@ private:
 	/** Id of the grid, used for the fortran <-> c interface */
 	int m_id;
 	
-#ifndef ASAGI_NOMPI
-	/** The communicator we use */
-	MPI_Comm m_communicator;
-#endif // ASAGI_NOMPI
-	/** Rank of this process */
-	int m_mpiRank;
-	/** Size of the MPI communicator */
-	int m_mpiSize;
-	
 	/**
 	 * The type of values we save in the grid.
 	 * This class implements all type specific operations.
@@ -80,6 +70,15 @@ private:
 protected:
 	/** Number of levels this grid container has */
 	const unsigned int m_levels;
+        
+        #ifndef ASAGI_NOMPI
+	/** The communicator we use */
+	MPI_Comm m_communicator;
+#endif // ASAGI_NOMPI
+	/** Rank of this process */
+	int m_mpiRank;
+	/** Size of the MPI communicator */
+	int m_mpiSize;
 	
 	/** Minimum in x dimension (set by subclasses) */
 	double m_minX;
@@ -96,12 +95,9 @@ protected:
 	
 	/** Value Position (cell-centered || vertex-centered) */
 	ValuePos m_valuePos;
-        
 public:
 	GridContainer(Type type, bool isArray = false,
 		unsigned int hint = NO_HINT,
-		unsigned int levels = 1);
-        GridContainer(unsigned int hint = NO_HINT,
 		unsigned int levels = 1);
 	GridContainer(unsigned int count,
 		unsigned int blockLength[],
@@ -219,7 +215,7 @@ public:
 	int getMPIRank() const
 	{
 		return m_mpiRank;
-	}        
+	}
 	
 	/**
 	 * @return The size of the MPI communicator

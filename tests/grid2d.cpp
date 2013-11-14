@@ -35,6 +35,7 @@
 
 #include <asagi.h>
 #include <mpi.h>
+#include <pthread.h>
 
 #define DEBUG_ABORT MPI_Abort(MPI_COMM_WORLD, 1)
 #include "utils/logger.h"
@@ -59,8 +60,10 @@ int main(int argc, char** argv)
 	
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	
-	Grid* grid = Grid::create(); // FLOAT is default
-	
+	Grid* grid = Grid::createThreadHandler(asagi::Grid::FLOAT, 0x0, 1, 1); // FLOAT is default
+        //#pragma omp parallel num_threads(4)
+        //{
+	grid->registerThread();
 	if (grid->open(NC_2D) != Grid::SUCCESS)
 		return 1;
 	
@@ -96,6 +99,7 @@ int main(int argc, char** argv)
 				<< "but is" << grid->getCounter("file_loads");
 		return 1;
 	}
+        //}
 	
 	delete grid;
 	

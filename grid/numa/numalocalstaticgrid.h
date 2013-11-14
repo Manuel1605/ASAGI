@@ -31,58 +31,61 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
-#ifndef GRID_SIMPLEGRIDCONTAINER_H
-#define GRID_SIMPLEGRIDCONTAINER_H
-
-#include "gridcontainer.h"
+#ifndef NUMALOCALSTATICGRID_H
+#define	NUMALOCALSTATICGRID_H
+#include "numagrid.h"
+#include "allocator/defaultallocator.h"
 
 namespace grid
 {
 
 /**
- * Simple grid container that stores one grid for each level. Each grid has to
- * cover the hole domain.
+ * This grid loads all (local) blocks into memory at initialization.
+ * Neither does this class change the blocks nor does it fetch new blocks.
+ * If you try to access values of a non-local block, the behavior is
+ * undefined.
+ * 
+ * If compiled without MPI, all blocks are local.
  */
-class SimpleGridContainer : public GridContainer
+class NumaLocalStaticGrid : virtual public NumaGrid
 {
 private:
-	/** All grids we control */
-	grid::Grid **m_grids;
-public:
-	SimpleGridContainer(Type type, bool isArray = false,
-		unsigned int hint = NO_HINT,
-		unsigned int levels = 1);
-	SimpleGridContainer(unsigned int count,
-		unsigned int blockLength[],
-		unsigned long displacements[],
-		asagi::Grid::Type types[],
-		unsigned int hint = NO_HINT, unsigned int levels = 1);
-	virtual ~SimpleGridContainer();
-	
-	Error setParam(const char* name, const char* value,
-		unsigned int level = 0);
-	Error open(const char* filename, unsigned int level = 0);
-	
-	unsigned char getByte3D(double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-	int getInt3D(double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-	long getLong3D(double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-	float getFloat3D(double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-	double getDouble3D(double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-	void getBuf3D(void* buf, double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-	
-	bool exportPng(const char* filename, unsigned int level = 0);
+	/** Local data cache */
+	unsigned char* m_data;
+        
+        /** Id of the grid. Used for Multilevelsupport */
+        unsigned int m_id;
+        
+        
 
-	unsigned long getCounter(const char* name, unsigned int level = 0);
+	/** The allocator we use to allocate and free memory */
+	const allocator::Allocator<unsigned char> &m_allocator;
+
+public:
+	NumaLocalStaticGrid(const NumaGridContainer &container,
+		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
+                const allocator::Allocator<unsigned char> &allocator
+			= allocator::DefaultAllocator<unsigned char>::allocator);
+	virtual ~NumaLocalStaticGrid();
+	
+protected:
+	virtual asagi::Grid::Error init();
+	virtual void getAt(void* buf, types::Type::converter_t converter,
+		unsigned long x, unsigned long y = 0, unsigned long z = 0);
+
+	/**
+	 * @return A pointer to the blocks
+	 */
+	unsigned char* getData()
+	{
+		return m_data;
+	}
 };
 
 }
 
-#endif // GRID_SIMPLEGRIDCONTAINER_H
+
+#endif	/* NUMALOCALSTATICGRID_H */

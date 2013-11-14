@@ -31,6 +31,7 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
 #include "numadiststaticgrid.h"
@@ -74,6 +75,7 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
     if (error != asagi::Grid::SUCCESS)
         return error;
 
+    // Only the Masterthread 
     // Create the mpi window for distributed blocks
     if (pthread_equal(ThreadHandler::masterthreadId, pthread_self())) {
         if (MPI_Win_create(getData(),
@@ -83,6 +85,8 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
                 getMPICommunicator(),
                 &m_window) != MPI_SUCCESS)
             return asagi::Grid::MPI_ERROR;
+        
+        //Other Threads has to know the window.
         ThreadHandler::mpiWindow[m_id] = m_window;
     } else {
         m_window = ThreadHandler::mpiWindow[m_id];
@@ -107,7 +111,8 @@ void grid::NumaDistStaticGrid::getAt(void* buf, types::Type::converter_t convert
 }
 
 /**
- * Transfer the block form the remote rank, that holds it
+ * Transfer the block form the remote rank, that holds it,
+ * or if it´s the same rank, copy it by using memcpy.
  */
 void grid::NumaDistStaticGrid::getBlock(unsigned long block,
         long oldBlock,
@@ -117,8 +122,12 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
     int remoteRank = getBlockRank(block);
     incCounter(perf::Counter::MPI);
     if (remoteRank == getMPIRank()) {
+        //The block is located in the same NUMA Domain,
+        //but in the memspace of another thread.
         pthread_t remoteId = getThreadId(block);
         size_t offset = getType().getSize()*getBlockThreadOffset(block);
+        
+        //copy the block
         memcpy(cache, ThreadHandler::staticPtr[remoteId][m_id] + offset, getType().getSize()*blockSize);
     } 
     else {

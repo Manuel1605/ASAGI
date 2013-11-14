@@ -21,7 +21,7 @@
  *  der GNU General Public License, wie von der Free Software Foundation,
  *  Version 3 der Lizenz oder (nach Ihrer Option) jeder spaeteren
  *  veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
- *
+ * 
  *  ASAGI wird in der Hoffnung, dass es nuetzlich sein wird, aber
  *  OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
  *  Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN
@@ -31,60 +31,56 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
-#ifndef NUMALOCALSTATICGRID_H
-#define	NUMALOCALSTATICGRID_H
-#include "numagrid.h"
+#ifndef NUMADISTSTATICGRID_H
+#define	NUMADISTSTATICGRID_H
 
-#include "allocator/numaallocator.h"
+#include "numalocalcachegrid.h"
+#include "numalocalstaticgrid.h"
+
+#ifndef THREADSAFETY
+#include <mutex>
+#endif // THREADSAFETY
+
+#include "blocks/blockmanager.h"
 
 namespace grid
 {
 
 /**
- * This grid loads all (local) blocks into memory at initialization.
- * Neither does this class change the blocks nor does it fetch new blocks.
- * If you try to access values of a non-local block, the behavior is
- * undefined.
- * 
- * If compiled without MPI, all blocks are local.
+ * Simple grid implementation, that distributes the grid at the beginning
+ * across all MPI tasks. If a block is not available, it is transfered via
+ * MPI, or via memcpy and stored in a cache.
  */
-class NumaLocalStaticGrid : virtual public NumaGrid
+class NumaDistStaticGrid : public NumaLocalStaticGrid, public NumaLocalCacheGrid
 {
 private:
-	/** Local data cache */
-	unsigned char* m_data;
+        /** MPI window for communication */
+	MPI_Win m_window;
         
+        /** ID of the grid. For Multilevelsupport */
         unsigned int m_id;
-        
-        
-
-	/** The allocator we use to allocate and free memory */
-	const allocator::Allocator<unsigned char> &m_allocator;
-
 public:
-	NumaLocalStaticGrid(const NumaGridContainer &container,
-		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
-                const allocator::Allocator<unsigned char> &allocator
-			= allocator::NumaAllocator<unsigned char>::allocator);
-	virtual ~NumaLocalStaticGrid();
+	NumaDistStaticGrid(const NumaGridContainer &container,
+		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0);
+	virtual ~NumaDistStaticGrid();
 	
 protected:
-	virtual asagi::Grid::Error init();
-	virtual void getAt(void* buf, types::Type::converter_t converter,
+	asagi::Grid::Error init();
+	
+	void getAt(void* buf, types::Type::converter_t converter,
 		unsigned long x, unsigned long y = 0, unsigned long z = 0);
 
-	/**
-	 * @return A pointer to the blocks
-	 */
-	unsigned char* getData()
-	{
-		return m_data;
-	}
+	void getBlock(unsigned long block,
+		long oldBlock,
+		unsigned long cacheIndex,
+		unsigned char* cache);
+
 };
 
 }
 
+#endif	/* NUMADISTSTATICGRID_H */
 
-#endif	/* NUMALOCALSTATICGRID_H */

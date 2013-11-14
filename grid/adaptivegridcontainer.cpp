@@ -72,17 +72,6 @@ grid::AdaptiveGridContainer::AdaptiveGridContainer(unsigned int count,
 	
 	m_ids = 0;
 }
-grid::AdaptiveGridContainer::AdaptiveGridContainer(asagi::Grid::Type type,
-	bool isArray, unsigned int hint, unsigned int levels, unsigned long int masterthreadId) : GridContainer(type, isArray, hint, levels),m_hint(hint){
-    
-    // Fancy way to allocate an array without default constructor
-	/*m_grids = multiGridAllocator.allocate(m_levels);
-	for (unsigned int i = 0; i < m_levels; i++)
-		new(m_grids+i) MultiGrid(*this);
-	m_grids[0].setTopLevel();
-	
-	m_ids = 0;*/
-}
 
 
 grid::AdaptiveGridContainer::~AdaptiveGridContainer()

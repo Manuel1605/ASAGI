@@ -34,10 +34,9 @@
  */
 
 #include "gridcontainer.h"
-#include "threadhandler.h"
+
 #include "grid/localcachegrid.h"
 #include "grid/localstaticgrid.h"
-
 #include "grid/passthroughgrid.h"
 #ifndef ASAGI_NOMPI
 #include "grid/diststaticgrid.h"
@@ -171,6 +170,7 @@ grid::GridContainer::GridContainer(unsigned int count,
 	m_mpiSize = 1;
 }
 
+
 grid::GridContainer::~GridContainer()
 {
 	delete m_type;
@@ -264,3 +264,7 @@ grid::Grid* grid::GridContainer::createGrid(unsigned int hint,
 	return new DistStaticGrid(*this, hint);
 #endif // ASAGI_NOMPI
 }
+
+// Fortran <-> c translation array
+fortran::PointerArray<grid::GridContainer>
+	grid::GridContainer::m_pointers;

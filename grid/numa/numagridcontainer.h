@@ -21,7 +21,7 @@
  *  der GNU General Public License, wie von der Free Software Foundation,
  *  Version 3 der Lizenz oder (nach Ihrer Option) jeder spaeteren
  *  veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
- *
+ * 
  *  ASAGI wird in der Hoffnung, dass es nuetzlich sein wird, aber
  *  OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
  *  Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN
@@ -31,55 +31,31 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
-#ifndef GRID_ADAPTIVEGRIDCONTAINER_H
-#define GRID_ADAPTIVEGRIDCONTAINER_H
-
-#include "gridcontainer.h"
-
-#include "grid/multigrid.h"
-
-#include <memory>
+#ifndef NUMAGRIDCONTAINER_H
+#define	NUMAGRIDCONTAINER_H
+#include "grid/gridcontainer.h"
+#include "numagrid.h"
 
 namespace grid
 {
 
-class Grid;
-
 /**
- * @brief An adaptive container that can store multiple grids of the same level
- * 
- * The container allows to store (a few) large blocks of each level.
+ * Simple grid container that stores one grid for each level. Each grid has to
+ * cover the hole domain.
  */
-class AdaptiveGridContainer : public GridContainer, GridCreator
+class NumaGridContainer : public GridContainer
 {
 private:
-	/** Optimization hint */
-	const int m_hint;
-	
-	/** Grid(-parts) */
-	MultiGrid* m_grids;
-	
-	/** Next unique id for a grid */
-	unsigned int m_ids;
-	
-#ifdef THREADSAFETY
-	/** Lock the createGrid function (only one thread can change m_ids) */
-	std::mutex m_mutex;
-#endif // THREADSAFETY
-	
+	/** All grids we control */
+	grid::Grid **m_grids;
 public:
-	AdaptiveGridContainer(Type type, bool isArray = false,
-		unsigned int hint = NO_HINT,
-		unsigned int level = 1);
-	AdaptiveGridContainer(unsigned int count,
-		unsigned int blockLength[],
-		unsigned long displacements[],
-		asagi::Grid::Type types[],
-		unsigned int hint = NO_HINT, unsigned int levels = 1);
-	virtual ~AdaptiveGridContainer();
-
+	NumaGridContainer(Type type, bool isArray = false, unsigned int hint = NO_HINT,
+		unsigned int levels = 1);
+	virtual ~NumaGridContainer();
+	
 	Error setParam(const char* name, const char* value,
 		unsigned int level = 0);
 	Error open(const char* filename, unsigned int level = 0);
@@ -98,26 +74,15 @@ public:
 		unsigned int level = 0);
 	
 	bool exportPng(const char* filename, unsigned int level = 0);
-
+#ifndef ASAGI_NOMPI
+        asagi::Grid::Error setComm(MPI_Comm comm);
+#endif
 	unsigned long getCounter(const char* name, unsigned int level = 0);
-
-public:
-	grid::Grid* createGrid()
-	{
-#ifdef THREADSAFETY
-		std::lock_guard<std::mutex> lock(m_mutex);
-#endif // THREADSAFETY
-		return GridContainer::createGrid(m_hint, m_ids++);
-	}
-		
-private:
-	grid::Grid* getGrid(double x, double y = 0, double z = 0,
-		unsigned int level = 0);
-
-private:
-	static std::allocator<MultiGrid> multiGridAllocator;
+        grid::Grid* createGrid(unsigned int hint, unsigned int id) const;
 };
 
 }
 
-#endif // GRID_CONTAINER_ADAPTIVEGRIDCONTAINER_H
+
+#endif	/* NUMAGRIDCONTAINER_H */
+

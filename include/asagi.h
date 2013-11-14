@@ -423,7 +423,7 @@ public:
         /** 
 	 * Creates a GridContainer for a Thread.
          */
-        virtual bool registerThread(){ return false;};
+        virtual void registerThread(){}
 
 public:
 	/**
@@ -791,7 +791,7 @@ double grid_get_double_3d(grid_handle* handle, double x, double y, double z,
 void grid_get_buf_3d(grid_handle* handle,void* buf, double x, double y,
 	double z, unsigned int level);
 
-bool register_thread(grid_handle* handle);
+void register_thread(grid_handle* handle);
 /**
  * @ingroup c_interface
  * 

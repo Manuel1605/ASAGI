@@ -37,7 +37,7 @@
 
 #include "grid/simplegridcontainer.h"
 #include "grid/adaptivegridcontainer.h"
-#include "grid/threadhandler.h"
+#include "grid/numa/threadhandler.h"
 
 // Static c++ functions
 asagi::Grid* asagi::Grid::create(Type type, unsigned int hint,
@@ -235,8 +235,8 @@ void grid_get_buf_3d(grid_handle* handle, void* buf, double x, double y, double 
 
 
 // Thread Functions
-bool register_thread(grid_handle* handle){
-    return handle->registerThread();
+void register_thread(grid_handle* handle){
+     handle->registerThread();
 }
 
 // destructor

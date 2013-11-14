@@ -21,7 +21,7 @@
  *  der GNU General Public License, wie von der Free Software Foundation,
  *  Version 3 der Lizenz oder (nach Ihrer Option) jeder spaeteren
  *  veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
- *
+ * 
  *  ASAGI wird in der Hoffnung, dass es nuetzlich sein wird, aber
  *  OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
  *  Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN
@@ -30,55 +30,34 @@
  *  Sie sollten eine Kopie der GNU General Public License zusammen mit diesem
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
- * @copyright 2012 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
-#include <asagi.h>
-#include <mpi.h>
+#include "numagrid.h"
 
-#define DEBUG_ABORT MPI_Abort(MPI_COMM_WORLD, 1)
-#include "utils/logger.h"
+#include "grid/constants.h"
 
-#include "tests.h"
+#ifdef PNG_ENABLED
+#include "io/pngwriter.h"
+#endif
 
-using namespace asagi;
+#include "types/basictype.h"
 
-int main(int argc, char** argv)
+#include <cstdlib>
+#include <cmath>
+#include <limits>
+
+/**
+ * @param container The container, this numagrid belongs to
+ * @param hint Optimization hints
+ */
+grid::NumaGrid::NumaGrid(const GridContainer &container,
+	unsigned int hint)
+	: Grid(container, hint)
 {
-	int rank;
-	
-	MPI_Init(&argc, &argv);
-	
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	
-	Grid* grid = Grid::createThreadHandler(asagi::Grid::FLOAT, 0x0, 1, 1); // FLOAT is default
-	
-      //  #pragma omp parallel num_threads(4)
-       // {
-        grid->registerThread();
-	if (grid->open(NC_3D) != Grid::SUCCESS)
-		return 1;
-	
-	long value;
-	
-	for (int i = 0; i < NC_WIDTH; i++) {
-		for (int j = 0; j < NC_LENGTH; j++) {
-			for (int k = 0; k < NC_HEIGHT; k++) {
-				value = (k * NC_LENGTH + j) * NC_WIDTH + i;
-				if (grid->getFloat3D(i, j, k) != value) {
-					logError() << "Test failed on rank" << rank << std::endl
-						<< "Value at" << i << j << k << "should be"
-						<< value << "but is" << grid->getInt3D(i, j, k);
-					return 1;
-				}
-			}
-		}
-	}
-	//}
-	delete grid;
-        
-	
-	MPI_Finalize();
-	
-	return 0;
+}
+
+grid::NumaGrid::~NumaGrid()
+{
 }

@@ -3,17 +3,11 @@ set( gridSources
     adaptivegridcontainer.cpp
 	grid.cpp
     gridcontainer.cpp
-    numagridcontainer.cpp
     localcachegrid.cpp
 	localstaticgrid.cpp
 	multigrid.cpp
 	passthroughgrid.cpp
 	simplegridcontainer.cpp
-        threadhandler.cpp 
-        numalocalstaticgrid.cpp
-        numalocalcachegrid.cpp
-        numadiststaticgrid.cpp
-        numagrid.cpp
         )
 if( NOT NOMPI )
 	set( gridSources
@@ -21,6 +15,6 @@ if( NOT NOMPI )
 		distcachegrid.cpp
 		diststaticgrid.cpp )
 endif( NOT NOMPI )
-
+add_subdirectory( numa )
 ##### Add to library #####
 add_sources( ${gridSources} )

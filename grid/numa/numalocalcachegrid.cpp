@@ -31,6 +31,7 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
 #include "numalocalcachegrid.h"
@@ -59,16 +60,22 @@ asagi::Grid::Error grid::NumaLocalCacheGrid::init()
 	unsigned long blockSize = getTotalBlockSize();
 	asagi::Grid::Error error;
 
-	//the first thread allocates the memory.
         if (pthread_equal(ThreadHandler::masterthreadId, pthread_self())) {
+            
+            //The first thread allocates the memory for othrer threads
             error = m_allocator.allocate(getType().getSize() * blockSize * getBlocksPerNode(), m_cache);
             if (error != asagi::Grid::SUCCESS)
                     return error;
-            (ThreadHandler::cachePtr[pthread_self()])[m_id] = m_cache;
+            
+            //Save the Pointer for other threads
+            ThreadHandler::cachePtr[pthread_self()][m_id] = m_cache;
         }
         else{
+            //The memory was already reserved from the masterthread. 
+            //Who am I? Not the masterthread.
             for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
-                if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {
+                if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {   
+                    //Simply shift the Pointer in the right space.
                     m_cache = ThreadHandler::cachePtr[ThreadHandler::masterthreadId][m_id] + ((((getType().getSize() * blockSize * getBlocksPerNode()) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
                     ThreadHandler::cachePtr[pthread_self()][m_id]=m_cache;
                 }

@@ -21,7 +21,7 @@
  *  der GNU General Public License, wie von der Free Software Foundation,
  *  Version 3 der Lizenz oder (nach Ihrer Option) jeder spaeteren
  *  veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
- *op
+ * 
  *  ASAGI wird in der Hoffnung, dass es nuetzlich sein wird, aber
  *  OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
  *  Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN
@@ -31,12 +31,15 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
 #include "numagridcontainer.h"
 #include "numalocalstaticgrid.h"
 #include "numalocalcachegrid.h"
+#ifndef ASAGI_NOMPI
 #include "numadiststaticgrid.h"
+#endif
 
 #include <algorithm>
 
@@ -111,26 +114,23 @@ unsigned long grid::NumaGridContainer::getCounter(const char* name, unsigned int
 
 asagi::Grid::Error grid::NumaGridContainer::setParam(const char* name, const char* value,
         unsigned int level) {
-    if(pthread_equal(pthread_self(), ThreadHandler::masterthreadId)){
-        Error result;
-	result = GridContainer::setParam(name, value, level);
-	if (result != UNKNOWN_PARAM)
-		return result;
-	
-	assert(level < m_levels);
-	return m_grids[level]->setParam(name, value);
-    }
+    Error result;
+    result = GridContainer::setParam(name, value, level);
+    if (result != UNKNOWN_PARAM)
+        return result;
+
+    assert(level < m_levels);
+    return m_grids[level]->setParam(name, value);
     return MPI_ERROR;
 }
 
 asagi::Grid::Error grid::NumaGridContainer::open(const char* filename, unsigned int level) {
     Error result;
-    if(pthread_equal(pthread_self(), ThreadHandler::masterthreadId)){
-        result = GridContainer::open(filename, level);
-	if (result != SUCCESS)
-		return result;
-    }
-    
+    result = GridContainer::open(filename, level);
+
+    if (result != SUCCESS)
+        return result;
+
     result = m_grids[level]->open(filename);
     if (result != SUCCESS)
         return result;
@@ -145,41 +145,51 @@ asagi::Grid::Error grid::NumaGridContainer::open(const char* filename, unsigned 
     return result;
 }
 
-asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm)
-{
-    if(pthread_equal(ThreadHandler::masterthreadId, pthread_self())){
-	return GridContainer::setComm(comm);
+#ifndef ASAGI_NOMPI
+asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm) {
+    //Was the communicator already set, by another thread?
+    if (ThreadHandler::mpiCommunicator != MPI_COMM_NULL){
+        // Was the communicator already set by User?
+        if(m_communicator!=MPI_COMM_NULL)
+            return SUCCESS;
+        
+        //The communicator is already set. So use the existing one.
+        m_communicator = ThreadHandler::mpiCommunicator;        
+        MPI_Comm_rank(m_communicator, &m_mpiRank);
+        MPI_Comm_size(m_communicator, &m_mpiSize);
     }
+    
+    //No Communicator was set. I´m the first Thread. So setup the Communicator.
+    if (MPI_Comm_dup(comm, &m_communicator) != MPI_SUCCESS)
+        return MPI_ERROR;
+    ThreadHandler::mpiCommunicator = m_communicator;
+    MPI_Comm_rank(m_communicator, &m_mpiRank);
+    MPI_Comm_size(m_communicator, &m_mpiSize);
+
+    return SUCCESS;
 }
-
-
+#endif
 /**
  * Creates a new grid according to the hints
  */
 grid::Grid* grid::NumaGridContainer::createGrid(
-	unsigned int hint, unsigned int id) const
-{
-       /* if (hint & PASS_THROUGH)
-		return new PassThroughGrid(*this, hint);*/
+        unsigned int hint, unsigned int id) const {
 
 #ifndef ASAGI_NOMPI
-	if (hint & NOMPI) {
+    if (hint & NOMPI) {
 #endif // ASAGI_NOMPI
-		if (hint & SMALL_CACHE)
-			return new NumaLocalCacheGrid(*this, hint, id);
+        if (hint & SMALL_CACHE)
+            return new NumaLocalCacheGrid(*this, hint, id);
 
-		return new NumaLocalStaticGrid(*this, hint, id);
+        return new NumaLocalStaticGrid(*this, hint, id);
 #ifndef ASAGI_NOMPI
-	}
+    }
 #endif // ASAGI_NOMPI
 
 #ifndef ASAGI_NOMPI
-	//if (hint & LARGE_GRID)
-		//return new DistCacheGrid(*this, hint, id);
+    //if (hint & LARGE_GRID)
+    //return new DistCacheGrid(*this, hint, id);
 
-	return new NumaDistStaticGrid(*this, hint, id);
+    return new NumaDistStaticGrid(*this, hint, id);
 #endif // ASAGI_NOMPI
 }
-    // Fortran <-> c translation array
-fortran::PointerArray<grid::GridContainer>
-	grid::GridContainer::m_pointers;

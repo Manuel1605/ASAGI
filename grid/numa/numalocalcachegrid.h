@@ -31,6 +31,7 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
 #ifndef NUMALOCALCACHEGRID_H
@@ -49,19 +50,21 @@ namespace grid
 
 /**
  * A grid that maintains a local cache for blocks. Can be combined with other
- * grid, e.g. StaticGrid.
+ * grid, e.g. NumaStaticGrid.
  */
 class NumaLocalCacheGrid : virtual public NumaGrid
 {
 private:
 	/** Cache memory */
 	unsigned char *m_cache;
+        
+        /** ID of the grid. For Multilevelsupport */
         unsigned int m_id;
 
 	/** BlockManager used to control the cache */
 	blocks::BlockManager m_blockManager;
 
-	/** The allocator we use to allocate and free memory */
+        /** The allocator we use to allocate and free memory */
 	const allocator::Allocator<unsigned char> &m_allocator;
 
 #ifdef THREADSAFETY
