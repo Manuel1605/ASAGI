@@ -159,7 +159,26 @@ asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm)
 grid::Grid* grid::NumaGridContainer::createGrid(
 	unsigned int hint, unsigned int id) const
 {
-        return new NumaDistStaticGrid(*this, hint);
+       /* if (hint & PASS_THROUGH)
+		return new PassThroughGrid(*this, hint);*/
+
+#ifndef ASAGI_NOMPI
+	if (hint & NOMPI) {
+#endif // ASAGI_NOMPI
+		if (hint & SMALL_CACHE)
+			return new NumaLocalCacheGrid(*this, hint, id);
+
+		return new NumaLocalStaticGrid(*this, hint, id);
+#ifndef ASAGI_NOMPI
+	}
+#endif // ASAGI_NOMPI
+
+#ifndef ASAGI_NOMPI
+	//if (hint & LARGE_GRID)
+		//return new DistCacheGrid(*this, hint, id);
+
+	return new NumaDistStaticGrid(*this, hint, id);
+#endif // ASAGI_NOMPI
 }
     // Fortran <-> c translation array
 fortran::PointerArray<grid::GridContainer>

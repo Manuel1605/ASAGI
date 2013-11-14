@@ -47,11 +47,11 @@
  * @see StaticGrid::StaticGrid()
  */
 grid::NumaDistStaticGrid::NumaDistStaticGrid(const NumaGridContainer &container,
-        unsigned int hint)
+        unsigned int hint, unsigned int id)
 : NumaGrid(container, hint),
-NumaLocalStaticGrid(container, hint,
-allocator::MPIAllocator<unsigned char>::allocator),
-NumaLocalCacheGrid(container, hint) {
+NumaLocalStaticGrid(container, hint, id, allocator::MPIAllocator<unsigned char>::allocator),
+NumaLocalCacheGrid(container, hint, id),
+m_id(id){
 }
 
 grid::NumaDistStaticGrid::~NumaDistStaticGrid() {
@@ -83,9 +83,9 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
                 getMPICommunicator(),
                 &m_window) != MPI_SUCCESS)
             return asagi::Grid::MPI_ERROR;
-        ThreadHandler::mpiWindow = m_window;
+        ThreadHandler::mpiWindow[m_id] = m_window;
     } else {
-        m_window = ThreadHandler::mpiWindow;
+        m_window = ThreadHandler::mpiWindow[m_id];
     }
 
     return asagi::Grid::SUCCESS;
@@ -119,12 +119,12 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
     if (remoteRank == getMPIRank()) {
         pthread_t remoteId = getThreadId(block);
         size_t offset = getType().getSize()*getBlockThreadOffset(block);
-        memcpy(cache, ThreadHandler::localStaticGridMemPtr[remoteId] + offset, getType().getSize()*blockSize);
-    } else {
+        memcpy(cache, ThreadHandler::staticPtr[remoteId][m_id] + offset, getType().getSize()*blockSize);
+    } 
+    else {
         unsigned long offset = getBlockOffset(block);
         int mpiResult;
         NDBG_UNUSED(mpiResult);
-        printf("mpi Transfer");
         mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, remoteRank,
                 MPI_MODE_NOCHECK, m_window);
         assert(mpiResult == MPI_SUCCESS);

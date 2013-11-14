@@ -43,9 +43,11 @@
  */
 
 grid::NumaLocalStaticGrid::NumaLocalStaticGrid(const NumaGridContainer &container,
-        unsigned int hint, const allocator::Allocator<unsigned char> &allocator)
+        unsigned int hint, unsigned int id, 
+        const allocator::Allocator<unsigned char> &allocator)
 : NumaGrid(container, hint),
-m_allocator(allocator) {
+        m_id(id),
+ m_allocator(allocator) {
     m_data = 0L;
 }
 
@@ -65,17 +67,13 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
         error = m_allocator.allocate(getType().getSize() * blockSize * masterBlockCount, m_data);
         if (error != asagi::Grid::SUCCESS)
             return error;
-        ThreadHandler::localStaticGridMemPtr[pthread_self()] = m_data;
+        (ThreadHandler::staticPtr[pthread_self()])[m_id] = m_data;
 
         // Load the blocks from the file, which we control
         for (unsigned long i = 0; i < masterBlockCount; i++) {
             if (getGlobalBlock(i) >= getBlockCount())
                 // Last process(es) may control less blocks
                 break;
-            if(i==0)
-                m_firstBlock=getGlobalBlock(i);
-            else if(i==(masterBlockCount-1))
-                m_lastBlock=getGlobalBlock(i);
             // Get x, y and z coordinates of the block
             getBlockPos(getGlobalBlock(i), block);
 
@@ -90,8 +88,8 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
     } else {
         for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
             if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {
-                m_data = ThreadHandler::localStaticGridMemPtr[ThreadHandler::masterthreadId] + ((((getType().getSize() * blockSize * masterBlockCount) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
-                ThreadHandler::localStaticGridMemPtr[pthread_self()]=m_data;
+                m_data = (ThreadHandler::staticPtr[ThreadHandler::masterthreadId])[m_id] + ((((getType().getSize() * blockSize * masterBlockCount) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
+                (ThreadHandler::staticPtr[pthread_self()])[m_id]=m_data;
             }
         }
     }

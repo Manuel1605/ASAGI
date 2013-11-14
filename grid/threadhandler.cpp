@@ -44,14 +44,12 @@
 #endif // ASAGI_NOMPI
 unsigned int count;
 pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
-/*unsigned char* grid::ThreadHandler::localStaticGridMemPtr;
-unsigned char* grid::ThreadHandler::localCacheGridMemPtr; */
-std::map<pthread_t, unsigned char*> grid::ThreadHandler::localStaticGridMemPtr;
-std::map<pthread_t, unsigned char*>  grid::ThreadHandler::localCacheGridMemPtr; 
+std::map<pthread_t, unsigned char**> grid::ThreadHandler::staticPtr;
+std::map<pthread_t, unsigned char**> grid::ThreadHandler::cachePtr; 
 pthread_t* grid::ThreadHandler::threadHandle;
 unsigned int grid::ThreadHandler::tCount;
 pthread_t grid::ThreadHandler::masterthreadId;
-MPI_Win grid::ThreadHandler::mpiWindow;
+MPI_Win* grid::ThreadHandler::mpiWindow;
 
 
 /**
@@ -62,14 +60,12 @@ MPI_Win grid::ThreadHandler::mpiWindow;
  * @param levels The number of levels
  * @param tCount The amount of threads
  */
-grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(&type) {
+grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(type) {
     count = 0;
     ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
     threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
-   /* localCacheGridMemPtr = (unsigned char*) malloc(size of(unsigned char)*tCount);
-    localStaticGridMemPtr = (unsigned char*) malloc(size of(unsigned char)*tCount); */
-
+    mpiWindow = (MPI_Win*) malloc(sizeof(MPI_Win)*levels);
 }
 
 /** 
@@ -80,16 +76,16 @@ bool grid::ThreadHandler::registerThread() {
     if(count==0)
         masterthreadId = pthread_self();
     threadHandle[count] = pthread_self();
-    if (m_hint & ADAPTIVE){
+    /*if (m_hint & ADAPTIVE)
          gridHandle[count] = new grid::AdaptiveGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels, masterthreadId);
-    }
-    else{
-         gridHandle[count] = new grid::NumaGridContainer(asagi::Grid::Type::FLOAT, false, m_hint, m_levels);
-    }
+    else*/
+    gridHandle[count] = new grid::NumaGridContainer(m_type1, false, m_hint, m_levels);
     gridMap[pthread_self()] = gridHandle[count];
+    cachePtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
+    staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
     count++;
-    if(count==tCount)
-        regCompleted=true;
+   /* if(count==tCount)
+        regCompleted=true;*/
     pthread_mutex_unlock(&mutex);
     return true;
 }

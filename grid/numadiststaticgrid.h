@@ -30,9 +30,10 @@ class NumaDistStaticGrid : public NumaLocalStaticGrid, public NumaLocalCacheGrid
 private:
     /** MPI window for communication */
 	MPI_Win m_window;
+        unsigned int m_id;
 public:
 	NumaDistStaticGrid(const NumaGridContainer &container,
-		unsigned int hint = asagi::Grid::NO_HINT);
+		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0);
 	virtual ~NumaDistStaticGrid();
 	
 protected:

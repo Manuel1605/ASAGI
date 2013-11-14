@@ -39,10 +39,11 @@
  * @see Grid::Grid()
  */
 grid::NumaLocalCacheGrid::NumaLocalCacheGrid(const NumaGridContainer &container,
-		unsigned int hint,
+		unsigned int hint, unsigned int id,
 		const allocator::Allocator<unsigned char> &allocator)
 	: NumaGrid(container, hint),
 	  m_cache(0L),
+          m_id(id),
 	  m_allocator(allocator)
 {
 
@@ -63,13 +64,13 @@ asagi::Grid::Error grid::NumaLocalCacheGrid::init()
             error = m_allocator.allocate(getType().getSize() * blockSize * getBlocksPerNode(), m_cache);
             if (error != asagi::Grid::SUCCESS)
                     return error;
-            ThreadHandler::localCacheGridMemPtr[pthread_self()] = m_cache;
+            (ThreadHandler::cachePtr[pthread_self()])[m_id] = m_cache;
         }
         else{
             for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
                 if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {
-                    m_cache = ThreadHandler::localCacheGridMemPtr[ThreadHandler::masterthreadId] + ((((getType().getSize() * blockSize * getBlocksPerNode()) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
-                    ThreadHandler::localCacheGridMemPtr[pthread_self()]=m_cache;
+                    m_cache = ThreadHandler::cachePtr[ThreadHandler::masterthreadId][m_id] + ((((getType().getSize() * blockSize * getBlocksPerNode()) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
+                    ThreadHandler::cachePtr[pthread_self()][m_id]=m_cache;
                 }
             }
         }

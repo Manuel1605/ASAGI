@@ -60,18 +60,18 @@ public:
         /** Optimization hint */
         const unsigned int m_hint;
         
-        const asagi::Grid::Type* m_type1;
+        const asagi::Grid::Type m_type1;
         
         
         /*unsigned char* localStaticGridMemPtr;
         
         unsigned char* localCacheGridMemPtr;*/
         
-        static std::map<pthread_t, unsigned char*> localStaticGridMemPtr;
-        static std::map<pthread_t, unsigned char*> localCacheGridMemPtr;
+        static std::map<pthread_t, unsigned char**> cachePtr;
+        static std::map<pthread_t, unsigned char**> staticPtr;
 
         
-        static MPI_Win mpiWindow;
+        static MPI_Win* mpiWindow;
 
         /**
          * Id of the Masterthread, which handles the MPI Connection

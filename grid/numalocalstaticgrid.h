@@ -56,15 +56,16 @@ private:
 	/** Local data cache */
 	unsigned char* m_data;
         
-        unsigned long m_firstBlock;
-        unsigned long m_lastBlock;
+        unsigned int m_id;
+        
+        
 
 	/** The allocator we use to allocate and free memory */
 	const allocator::Allocator<unsigned char> &m_allocator;
 
 public:
 	NumaLocalStaticGrid(const NumaGridContainer &container,
-		unsigned int hint = asagi::Grid::NO_HINT,
+		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
                 const allocator::Allocator<unsigned char> &allocator
 			= allocator::NumaAllocator<unsigned char>::allocator);
 	virtual ~NumaLocalStaticGrid();

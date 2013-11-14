@@ -56,6 +56,7 @@ class NumaLocalCacheGrid : virtual public NumaGrid
 private:
 	/** Cache memory */
 	unsigned char *m_cache;
+        unsigned int m_id;
 
 	/** BlockManager used to control the cache */
 	blocks::BlockManager m_blockManager;
@@ -73,7 +74,7 @@ private:
 
 public:
 	NumaLocalCacheGrid(const NumaGridContainer &container,
-		unsigned int hint = asagi::Grid::NO_HINT,
+		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
 		const allocator::Allocator<unsigned char> &allocator
 			= allocator::DefaultAllocator<unsigned char>::allocator);
 	virtual ~NumaLocalCacheGrid();
