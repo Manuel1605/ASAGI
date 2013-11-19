@@ -15,6 +15,8 @@ option( EXAMPLES "Compile examples" OFF )
 option( TESTS "Test library" OFF )
 option( NOMPI "Compile without MPI" OFF )
 option( ROUND_ROBIN "Distribute blocks round robin on nodes (internal use)" ON )
+option( NUMA_SUPPORT "Support Hybrid Applications for NUMA Architecture" OFF )
+
 
 ##### Default build type #####
 if( NOT CMAKE_BUILD_TYPE )
@@ -138,6 +140,11 @@ if( NOT NOMPI )
 	set( CMAKE_CXX_COMPILER ${MPI_CXX_COMPILER} )
 	set( CMAKE_Fortran_COMPILER ${MPI_Fortran_COMPILER} )
 endif( NOT NOMPI )
+
+# NUMA Architecture Support
+if( NUMA_SUPPORT )
+	add_definitions( -DNUMA_SUPPORT )
+endif( NUMA_SUPPORT )
 
 # Find netcdf
 find_package( NetCDF REQUIRED )

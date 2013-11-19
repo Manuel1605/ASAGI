@@ -31,10 +31,11 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012 Sebastian Rettenberger <rettenbs@in.tum.de>
+ * @copyright 2013 Manuel Fasching <manuel.fasching@tum.de>
  */
-
 #include <asagi.h>
 #include <mpi.h>
+#include <omp.h>
 
 #define DEBUG_ABORT MPI_Abort(MPI_COMM_WORLD, 1)
 #include "utils/logger.h"
@@ -45,36 +46,29 @@ using namespace asagi;
 
 int main(int argc, char** argv)
 {
+        int failure = 0;
+        
         int rank;
-        
-        MPI_Init(&argc, &argv);
-        
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        
-        Grid* grid = Grid::create(); // FLOAT is default
-        
-        if (grid->open(NC_3D) != Grid::SUCCESS)
-                return 1;
-        
-        long value;
-        
-        for (int i = 0; i < NC_WIDTH; i++) {
-                for (int j = 0; j < NC_LENGTH; j++) {
-                        for (int k = 0; k < NC_HEIGHT; k++) {
-                                value = (k * NC_LENGTH + j) * NC_WIDTH + i;
-                                if (grid->getFloat3D(i, j, k) != value) {
-                                        logError() << "Test failed on rank" << rank << std::endl
-                                                << "Value at" << i << j << k << "should be"
-                                                << value << "but is" << grid->getInt3D(i, j, k);
-                                        return 1;
-                                }
+	
+	MPI_Init(&argc, &argv);
+	
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	
+        Grid* grid = Grid::createThreadHandler(asagi::Grid::FLOAT, 0x0, 1, THREADS);
+#pragma omp parallel num_threads(THREADS)
+{
+       if (grid->open(NC_1D) != Grid::SUCCESS)
+           failure = 1;
+       if (failure != 1)
+                for (int i = 0; i < NC_WIDTH; i++) 
+                        if (grid->getInt1D(i) != i) {
+                            logError() << "Test failed on rank " << rank << " and thread " << omp_get_thread_num() << std::endl
+                                    << "Value at" << i << "should be"
+                                    << i << "but is" << grid->getInt1D(i);
+                            failure = 1;
                         }
-                }
-        }
-        
+}
         delete grid;
-        
         MPI_Finalize();
-        
-        return 0;
+        return failure;
 }

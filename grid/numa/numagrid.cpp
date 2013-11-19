@@ -38,10 +38,6 @@
 
 #include "grid/constants.h"
 
-#ifdef PNG_ENABLED
-#include "io/pngwriter.h"
-#endif
-
 #include "types/basictype.h"
 
 #include <cstdlib>

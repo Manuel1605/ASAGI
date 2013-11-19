@@ -40,9 +40,7 @@
 #include "numalocalcachegrid.h"
 #include "numalocalstaticgrid.h"
 
-#ifndef THREADSAFETY
 #include <mutex>
-#endif // THREADSAFETY
 
 #include "blocks/blockmanager.h"
 

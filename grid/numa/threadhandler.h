@@ -87,7 +87,15 @@ public:
         static pthread_t* threadHandle;
         
         /** Number of threads this handler has to manage*/
+        
         static unsigned int tCount;
+        /**
+         * Mutex for Thread Safety
+         */
+        static pthread_mutex_t mutex;
+        
+        /**Condition for synchronizing threads */
+        static pthread_cond_t cond;
 
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
@@ -112,10 +120,7 @@ private:
 	bool m_noMPI;
         
         
-        /**
-         * Mutex for Thread Safety
-         */
-        static pthread_mutex_t mutex;
+        
         
         /**
          * Handle of the Masterthread
@@ -160,11 +165,6 @@ public:
 	ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount);
 	virtual ~ThreadHandler();
         
-        
-        /**
-         * TODO 
-         */
-        virtual void registerThread();
 	
 #ifndef ASAGI_NOMPI
 	Error setComm(MPI_Comm comm = MPI_COMM_WORLD);

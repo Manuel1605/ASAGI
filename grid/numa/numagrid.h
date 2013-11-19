@@ -59,45 +59,53 @@ namespace grid {
      */
     class NumaGrid : public Grid {	
     private:
-        /** Number of cached blocks on each thread */
-	//long m_blocksPerThread;
     public:
         NumaGrid(const GridContainer &container,
                 unsigned int hint = asagi::Grid::NO_HINT);
         virtual ~NumaGrid();
-        //asagi::Grid::Error open(const char* filename);
-
     protected:
- 	
+        
 	/**
-	 * @return The number of blocks we should store on this Thread
+	 * @return The of blocks that are stored on this node. It has to be a multiple of the amount of Threads.
+         * 
+	 */
+	unsigned long getLocalBlockCount() const
+	{
+		return (( Grid::getLocalBlockCount()+ThreadHandler::tCount-1)/ThreadHandler::tCount)*ThreadHandler::tCount;
+	}
+        
+        /**
+	 * @return The amount of blocks that are stored on one thread.
+	 */
+	unsigned long getThreadBlockCount() const
+	{ 
+		return getLocalBlockCount() / ThreadHandler::tCount;
+	}
+        
+        
+        /**
+	 * @return The number of blocks we should store on all nodes in the numa domain. For Cache.
+	 */
+	unsigned long getBlocksPerNode() const
+	{
+		return ((Grid::getBlocksPerNode()+(ThreadHandler::tCount-1))/ThreadHandler::tCount)*ThreadHandler::tCount;
+	}
+        
+        /**
+	 * @return the number of blocks we should store on this thread node. For Cache.
 	 */
 	unsigned long getBlocksPerThread() const
 	{
-		//return m_blocksPerThread;
-                return (getBlocksPerNode()+(ThreadHandler::tCount-1))/ThreadHandler::tCount;
-	}
-	
-	
-	/**
-	 * @return The of blocks that are stored on one thread
-	 */
-	unsigned long getThreadBlockCount()
-	{
-		return (getLocalBlockCount()+ThreadHandler::tCount-1) / ThreadHandler::tCount;
+                return getBlocksPerNode()/ThreadHandler::tCount;
 	}
 	
 	/**
-	 * @param id Local block id
+	 * @param id Global block id
 	 * @return The thread rank, that stores the block
 	 */
 	int getBlockThreadRank(unsigned long id) const
 	{
-#ifdef ROUND_ROBIN
-		return id % getMPISize();
-#else // ROUND_ROBIN
-		return id / getThreadBlockCount();
-#endif // ROUND_ROBIN
+            return (Grid::getBlockOffset(id) / getThreadBlockCount());
 	}
 	
 	/**
@@ -106,22 +114,17 @@ namespace grid {
 	 */
 	unsigned long getBlockThreadOffset(unsigned long id) const
 	{
-#ifdef ROUND_ROBIN
-		return id / getMPISize();
-#else // ROUND_ROBIN
-		return id % getThreadBlockCount();
-#endif // ROUND_ROBIN
-	}
+            return Grid::getBlockOffset(id) % getThreadBlockCount();
+        }
         
         /**
 	 * @param block Global block id
 	 * @return The ThreadID which holds the block
 	 */
-        unsigned long getThreadId(unsigned long block) {
-            return ThreadHandler::threadHandle[(block / getThreadBlockCount())];
+        unsigned long getThreadId(unsigned long block) const {
+            return ThreadHandler::threadHandle[getBlockThreadRank(block)];
         }
-        
-        
+               
 };
 }
 

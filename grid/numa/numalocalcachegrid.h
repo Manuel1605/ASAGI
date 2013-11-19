@@ -41,9 +41,7 @@
 #include "allocator/defaultallocator.h"
 #include "blocks/blockmanager.h"
 
-#ifndef THREADSAFETY
 #include <mutex>
-#endif // THREADSAFETY
 
 namespace grid
 {
@@ -66,16 +64,16 @@ private:
 
         /** The allocator we use to allocate and free memory */
 	const allocator::Allocator<unsigned char> &m_allocator;
+        
 
-#ifdef THREADSAFETY
-	/**
+        
+        /**
 	 * Lock cache
 	 * @todo Use a shared mutex, to allow multiple readers
 	 */
 	std::mutex m_slaveMutex;
-#endif // THREADSAFETY
-
 public:
+    
 	NumaLocalCacheGrid(const NumaGridContainer &container,
 		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
 		const allocator::Allocator<unsigned char> &allocator

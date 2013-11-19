@@ -418,12 +418,6 @@ public:
 	 */
 	virtual unsigned long getCounter(const char *name,
 		unsigned int level = 0) = 0;
-        
-        
-        /** 
-	 * Creates a GridContainer for a Thread.
-         */
-        virtual void registerThread(){}
 
 public:
 	/**
@@ -448,9 +442,10 @@ public:
 	 * @param levels The number of level this grid should have
          * @param Count of Threads
 	 */
+#ifdef NUMA_SUPPORT
 	static asagi::Grid* createThreadHandler(Type type = FLOAT,
-		unsigned int hint=NO_HINT, unsigned int levels=1, unsigned int tCount=4);
-	
+		unsigned int hint=NO_HINT, unsigned int levels=1, unsigned int tCount=1);
+#endif
 	/**
 	 * @ingroup cxx_interface
 	 * 
@@ -791,7 +786,6 @@ double grid_get_double_3d(grid_handle* handle, double x, double y, double z,
 void grid_get_buf_3d(grid_handle* handle,void* buf, double x, double y,
 	double z, unsigned int level);
 
-void register_thread(grid_handle* handle);
 /**
  * @ingroup c_interface
  * 

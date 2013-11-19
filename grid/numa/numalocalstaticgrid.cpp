@@ -39,6 +39,9 @@
 #include <pthread.h>
 #include <stdio.h>
 
+
+unsigned int grid::NumaLocalStaticGrid::thread=0;
+
 /**
  * @see Grid::Grid()
  */
@@ -60,43 +63,41 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
     unsigned long blockSize = getTotalBlockSize();
     size_t block[3];
     unsigned long masterBlockCount = getLocalBlockCount();
-
-
+    
     //the first thread allocates the memory.
-    if (pthread_equal(ThreadHandler::masterthreadId, pthread_self())) {
+    if (thread==0) {
         asagi::Grid::Error error;
         error = m_allocator.allocate(getType().getSize() * blockSize * masterBlockCount, m_data);
         if (error != asagi::Grid::SUCCESS)
             return error;
         ThreadHandler::staticPtr[pthread_self()][m_id] = m_data;
-
+    }
+    else {
+        //The memory was already allocated from the masterthread.
+   
+                //Simply shift the Pointer in the right space.
+                m_data = (ThreadHandler::staticPtr[ThreadHandler::masterthreadId])[m_id] + (getType().getSize() * blockSize * getThreadBlockCount() * thread);
+                (ThreadHandler::staticPtr[pthread_self()])[m_id]=m_data;
+    }
         // Load the blocks from the file, which we control
-        for (unsigned long i = 0; i < masterBlockCount; i++) {
-            if (getGlobalBlock(i) >= getBlockCount())
+        for (unsigned long i = thread*getThreadBlockCount(); i < (thread*getThreadBlockCount()+getThreadBlockCount()); i++) {
+            if (getGlobalBlock(i) >= getBlockCount()){
                 // Last process(es) may control less blocks
                 break;
+            }
             // Get x, y and z coordinates of the block
             getBlockPos(getGlobalBlock(i), block);
-
+            
             // Get x, y and z coordinates of the first value in the block
             for (unsigned char j = 0; j < 3; j++)
                 block[j] *= getBlockSize(j);
-
             getType().load(getInputFile(),
                     block, getBlockSize(),
-                    &m_data[getType().getSize() * blockSize * i]);
+                    &m_data[getType().getSize() * blockSize * (i-thread*getThreadBlockCount())]);
         }
-    } else {
-        //The memory was already reserved from the masterthread. 
-        //Who am I? Not the masterthread.
-        for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
-            if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {
-                //Simply shift the Pointer in the right space.
-                m_data = (ThreadHandler::staticPtr[ThreadHandler::masterthreadId])[m_id] + ((((getType().getSize() * blockSize * masterBlockCount) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
-                (ThreadHandler::staticPtr[pthread_self()])[m_id]=m_data;
-            }
-        }
-    }
+    
+    //I have finished. Set the counter for the next Thread.
+    thread++;
     return asagi::Grid::SUCCESS;
 }
 
@@ -106,10 +107,10 @@ void grid::NumaLocalStaticGrid::getAt(void* buf, types::Type::converter_t conver
     unsigned long blockSize = getTotalBlockSize();
     unsigned long block = getBlockByCoords(x, y, z);
     int remoteMPIRank = getBlockRank(block);
-    unsigned long remoteThreadId = getThreadId(getBlockOffset(block));
+    unsigned long remoteThreadId = getThreadId(block);
     NDBG_UNUSED(remoteMPIRank);
     unsigned long offset = getBlockThreadOffset(block);
-    
+
     // Offset inside the block
     x %= getBlockSize(0);
     y %= getBlockSize(1);

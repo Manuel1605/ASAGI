@@ -1,3 +1,11 @@
+if( NUMA_SUPPORT)
+FIND_PACKAGE( OpenMP REQUIRED)
+message("OPENMP FOUND")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif( NUMA_SUPPORT)
+
 # Tests may want to include more header files
 include_directories( ${CMAKE_SOURCE_DIR} )
 
@@ -60,6 +68,9 @@ set( test_header ${CMAKE_CURRENT_BINARY_DIR}/tests.h )
 # Add directory for generated header files
 include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 
+# add_definitions( "-fopenmp" )
+
+
 # Create test executables
 add_test_executable( grid1d YES )
 add_test_executable( grid1dpseudo YES )
@@ -68,10 +79,17 @@ add_test_executable( grid3d YES )
 add_test_executable( largegrid1d YES )
 add_test_executable( largegrid2d YES )
 add_test_executable( adaptivegrid2d YES )
+if( NUMA_SUPPORT)
+    add_test_executable( grid1dnuma YES )
+    add_test_executable( grid2dnuma YES )
+    add_test_executable( grid3dnuma YES )
+endif( NUMA_SUPPORT )
+
 
 add_test_executable( localcachegrid2d )
 add_test_executable( passthroughgrid2d )
 add_test_executable( staticgrid2d )
+
 
 # Unit Tests
 add_subdirectory( unittest )
@@ -88,3 +106,10 @@ add_test_run( AdaptiveGrid2D test_adaptivegrid2d 2 )
 add_test_run( LocalCacheGrid2D test_localcachegrid2d )
 add_test_run( PassThroughGrid2D test_passthroughgrid2d )
 add_test_run( StaticGrid2D test_staticgrid2d ) 
+
+if( NUMA_SUPPORT)
+    add_test_run( Grid1DNuma test_grid1dnuma 2 )
+    add_test_run( Grid2DNuma test_grid2dnuma 2 )
+    add_test_run( Grid3DNuma test_grid3dnuma 2 )
+endif( NUMA_SUPPORT )
+

@@ -15,6 +15,8 @@ if( NOT NOMPI )
 		distcachegrid.cpp
 		diststaticgrid.cpp )
 endif( NOT NOMPI )
-add_subdirectory( numa )
+if ( NUMA_SUPPORT ) 
+    add_subdirectory( numa )
+endif( NUMA_SUPPORT )
 ##### Add to library #####
 add_sources( ${gridSources} )

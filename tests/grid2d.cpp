@@ -35,7 +35,6 @@
 
 #include <asagi.h>
 #include <mpi.h>
-#include <pthread.h>
 
 #define DEBUG_ABORT MPI_Abort(MPI_COMM_WORLD, 1)
 #include "utils/logger.h"
@@ -49,61 +48,58 @@ using namespace asagi;
  */
 static unsigned int ceil(unsigned int a, unsigned int b)
 {
-	return (a + b - 1) / b;
+        return (a + b - 1) / b;
 }
 
 int main(int argc, char** argv)
 {
-	int rank;
-	
-	MPI_Init(&argc, &argv);
-	
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	
-	Grid* grid = Grid::createThreadHandler(asagi::Grid::FLOAT, 0x0, 1, 1); // FLOAT is default
-        //#pragma omp parallel num_threads(4)
-        //{
-	grid->registerThread();
-	if (grid->open(NC_2D) != Grid::SUCCESS)
-		return 1;
-	
-	int value;
-	
-	for (int i = 0; i < NC_WIDTH; i++) {
-		for (int j = 0; j < NC_LENGTH; j++) {
-			value = j * NC_WIDTH + i;
-			if (grid->getInt2D(i, j) != value) {
-				logError() << "Test failed on rank" << rank << std::endl
-					<< "Value at" << i << j << "should be"
-					<< value << "but is" << grid->getInt2D(i, j);
-				return 1;
-			}
-		}
-	}
+        int rank;
+        
+        MPI_Init(&argc, &argv);
+        
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        
+        Grid* grid = Grid::create(); // FLOAT is default
+        
+        if (grid->open(NC_2D) != Grid::SUCCESS)
+                return 1;
+        
+        int value;
+        
+        for (int i = 0; i < NC_WIDTH; i++) {
+                for (int j = 0; j < NC_LENGTH; j++) {
+                        value = j * NC_WIDTH + i;
+                        if (grid->getInt2D(i, j) != value) {
+                                logError() << "Test failed on rank" << rank << std::endl
+                                        << "Value at" << i << j << "should be"
+                                        << value << "but is" << grid->getInt2D(i, j);
+                                return 1;
+                        }
+                }
+        }
 
-	if (grid->getCounter("accesses") != NC_WIDTH * NC_LENGTH) {
-		logError() << "Counter \"accesses\" should be" << (NC_WIDTH*NC_LENGTH)
-				<< "but is" << grid->getCounter("accesses");
-		return 1;
-	}
+        if (grid->getCounter("accesses") != NC_WIDTH * NC_LENGTH) {
+                logError() << "Counter \"accesses\" should be" << (NC_WIDTH*NC_LENGTH)
+                                << "but is" << grid->getCounter("accesses");
+                return 1;
+        }
 
-	// Assuming 2 MPI processes / 50 values in each dimension per block
-	if (grid->getCounter("mpi_transfers") != (ceil(NC_WIDTH, 50)*ceil(NC_LENGTH, 50)/2)) {
-		logError() << "Counter \"mpi_transfers\" should be" << (ceil(NC_WIDTH, 50)*ceil(NC_LENGTH, 50)/2)
-				<< "but is" << grid->getCounter("mpi_transfers");
-		return 1;
-	}
+        // Assuming 2 MPI processes / 50 values in each dimension per block
+        if (grid->getCounter("mpi_transfers") != (ceil(NC_WIDTH, 50)*ceil(NC_LENGTH, 50)/2)) {
+                logError() << "Counter \"mpi_transfers\" should be" << (ceil(NC_WIDTH, 50)*ceil(NC_LENGTH, 50)/2)
+                                << "but is" << grid->getCounter("mpi_transfers");
+                return 1;
+        }
 
-	if (grid->getCounter("file_loads") != 0) {
-		logError() << "Counter \"file_loads\" should be 0"
-				<< "but is" << grid->getCounter("file_loads");
-		return 1;
-	}
-        //}
-	
-	delete grid;
-	
-	MPI_Finalize();
-	
-	return 0;
+        if (grid->getCounter("file_loads") != 0) {
+                logError() << "Counter \"file_loads\" should be 0"
+                                << "but is" << grid->getCounter("file_loads");
+                return 1;
+        }
+        
+        delete grid;
+        
+        MPI_Finalize();
+        
+        return 0;
 }

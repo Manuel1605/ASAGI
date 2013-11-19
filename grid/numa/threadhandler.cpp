@@ -36,10 +36,13 @@
 
 #include "threadhandler.h"
 #include "numagridcontainer.h"
+#include "numalocalcachegrid.h"
+#include "numalocalstaticgrid.h"
 #include <pthread.h>
 #include <iostream>
 
 pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t grid::ThreadHandler::cond  = PTHREAD_COND_INITIALIZER;
 std::map<pthread_t, unsigned char**> grid::ThreadHandler::staticPtr;
 std::map<pthread_t, unsigned char**> grid::ThreadHandler::cachePtr; 
 pthread_t* grid::ThreadHandler::threadHandle;
@@ -63,32 +66,21 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
     m_count = 0;
     ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
-#ifndef ASAGI_NOMPI
     threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
+#ifndef ASAGI_NOMPI
     mpiWindow = (MPI_Win*) malloc(sizeof(MPI_Win)*levels);
 #endif
-}
-
-/** 
- * Creates a GridContainer for a Thread, and setup important variables.
- */
-void grid::ThreadHandler::registerThread() {
-    pthread_mutex_lock(&mutex);
-    if(m_count==0)
-        masterthreadId = pthread_self();
-    threadHandle[m_count] = pthread_self();
-    gridHandle[m_count] = new grid::NumaGridContainer(m_type1, false, m_hint, m_levels);
-    gridMap[pthread_self()] = gridHandle[m_count];
-    cachePtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
-    staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
-    m_count++;
-    pthread_mutex_unlock(&mutex);
 }
 
 /** 
  * Destructor
  */
 grid::ThreadHandler::~ThreadHandler() {
+    pthread_cond_destroy(&cond);
+    pthread_mutex_destroy(&mutex);
+    delete[] gridHandle;
+    free(threadHandle);
+    free(mpiWindow);
 }
 
 unsigned char grid::ThreadHandler::getByte3D(double x, double y, double z,
@@ -142,13 +134,41 @@ asagi::Grid::Error grid::ThreadHandler::setParam(const char* name,
     return gridMap[pthread_self()]->setParam(name, value, level);
 }
 
+
 asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         unsigned int level) {
+    
     pthread_mutex_lock(&mutex);
-    gridMap[pthread_self()]->open(filename,level);
+
+    if(m_count==0){
+        masterthreadId = pthread_self();
+        NumaLocalStaticGrid::thread=0;
+    }
+    threadHandle[m_count] = pthread_self();
+    gridHandle[m_count] = new grid::NumaGridContainer(m_type1, false, m_hint, m_levels);
+    gridMap[pthread_self()] = gridHandle[m_count];
+    cachePtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
+    staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
+    
+        gridMap[pthread_self()]->open(filename,level);
+        m_minX = gridMap[pthread_self()]->getXMin();
+        m_minY = gridMap[pthread_self()]->getYMin();
+        m_minZ = gridMap[pthread_self()]->getZMin();
+
+        m_maxX = gridMap[pthread_self()]->getXMax();
+        m_maxY = gridMap[pthread_self()]->getYMax();
+        m_maxZ = gridMap[pthread_self()]->getZMax();
+
+        m_count++;     
+       
+        //Send signal and set condition. The Masterthread has allocated the Memory
+        if(m_count==tCount)
+                pthread_cond_broadcast(&cond);
+        
+        //Wait until every thread has called open()
+        while(m_count<tCount){
+            pthread_cond_wait(&cond, &mutex);
+        }
     pthread_mutex_unlock(&mutex);
     return SUCCESS;  
 }
-
-
-

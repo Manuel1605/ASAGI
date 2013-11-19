@@ -52,13 +52,16 @@ namespace grid
  */
 class NumaLocalStaticGrid : virtual public NumaGrid
 {
+public:
+        /* Iterator for Threads */
+        static unsigned int thread;
+
 private:
 	/** Local data cache */
 	unsigned char* m_data;
         
         /** Id of the grid. Used for Multilevelsupport */
         unsigned int m_id;
-        
         
 
 	/** The allocator we use to allocate and free memory */

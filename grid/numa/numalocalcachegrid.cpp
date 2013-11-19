@@ -40,85 +40,64 @@
  * @see Grid::Grid()
  */
 grid::NumaLocalCacheGrid::NumaLocalCacheGrid(const NumaGridContainer &container,
-		unsigned int hint, unsigned int id,
-		const allocator::Allocator<unsigned char> &allocator)
-	: NumaGrid(container, hint),
-	  m_cache(0L),
-          m_id(id),
-	  m_allocator(allocator)
+        unsigned int hint, unsigned int id,
+        const allocator::Allocator<unsigned char> &allocator)
+: NumaGrid(container, hint),
+m_cache(0L),
+m_id(id),
+m_allocator(allocator) 
 {
 
 }
 
-grid::NumaLocalCacheGrid::~NumaLocalCacheGrid()
-{
-	m_allocator.free(m_cache);
+grid::NumaLocalCacheGrid::~NumaLocalCacheGrid() {
+    m_allocator.free(m_cache);
 }
 
-asagi::Grid::Error grid::NumaLocalCacheGrid::init()
-{
-	unsigned long blockSize = getTotalBlockSize();
-	asagi::Grid::Error error;
+asagi::Grid::Error grid::NumaLocalCacheGrid::init() {
+    unsigned long blockSize = getTotalBlockSize();
+    asagi::Grid::Error error;
 
-        if (pthread_equal(ThreadHandler::masterthreadId, pthread_self())) {
-            
-            //The first thread allocates the memory for othrer threads
-            error = m_allocator.allocate(getType().getSize() * blockSize * getBlocksPerNode(), m_cache);
-            if (error != asagi::Grid::SUCCESS)
-                    return error;
-            
-            //Save the Pointer for other threads
-            ThreadHandler::cachePtr[pthread_self()][m_id] = m_cache;
-        }
-        else{
-            //The memory was already reserved from the masterthread. 
-            //Who am I? Not the masterthread.
-            for (unsigned int i = 1; i < ThreadHandler::tCount; i++) {
-                if (pthread_equal(ThreadHandler::threadHandle[i], pthread_self())) {   
-                    //Simply shift the Pointer in the right space.
-                    m_cache = ThreadHandler::cachePtr[ThreadHandler::masterthreadId][m_id] + ((((getType().getSize() * blockSize * getBlocksPerNode()) * i)+(ThreadHandler::tCount-1)) / ThreadHandler::tCount);
-                    ThreadHandler::cachePtr[pthread_self()][m_id]=m_cache;
-                }
-            }
-        }
-        m_blockManager.init(getBlocksPerThread(), getHandsDiff());
+    error = m_allocator.allocate(getType().getSize() * blockSize * getBlocksPerThread(), m_cache);
+    if (error != asagi::Grid::SUCCESS)
+        return error;
 
-	return asagi::Grid::SUCCESS;
+    //Save the Pointer for other threads
+    ThreadHandler::cachePtr[pthread_self()][m_id] = m_cache;
+    m_blockManager.init(getBlocksPerThread(), getHandsDiff());
+    return asagi::Grid::SUCCESS;
 }
 
 void grid::NumaLocalCacheGrid::getAt(void* buf, types::Type::converter_t converter,
-	unsigned long x, unsigned long y, unsigned long z)
-{
-	unsigned long blockSize = getTotalBlockSize();
-	unsigned long block = getBlockByCoords(x, y, z);
-	unsigned long index;
+        unsigned long x, unsigned long y, unsigned long z) {
+    unsigned long blockSize = getTotalBlockSize();
+    unsigned long block = getBlockByCoords(x, y, z);
+    unsigned long index;
 
-#ifdef THREADSAFETY
-	std::lock_guard<std::mutex> lock(m_slaveMutex);
-#endif // THREADSAFETY
+    std::lock_guard<std::mutex> lock(m_slaveMutex);
 
-	if (!m_blockManager.getIndex(block, index)) {
-		// We do not have this block, transfer it first
+    if (!m_blockManager.getIndex(block, index)) {
+        // We do not have this block, transfer it first
 
-		// Get index where we store the block
-		long oldBlock = m_blockManager.getFreeIndex(block, index);
+        // Get index where we store the block
+        long oldBlock = m_blockManager.getFreeIndex(block, index);
 
-		// Get the block
-		getBlock(block, oldBlock, index,
-			&m_cache[getType().getSize() * blockSize * index]);
+        // Get the block
+        getBlock(block, oldBlock, index,
+                &m_cache[getType().getSize() * blockSize * index]);
 
-	}
+    }
 
-	// Offset inside the block
-	x %= getBlockSize(0);
-	y %= getBlockSize(1);
-	z %= getBlockSize(2);
-        
-	(getType().*converter)(&m_cache[getType().getSize() *
-		(blockSize * index // correct block
-		+ (z * getBlockSize(1) + y) * getBlockSize(0) + x) // correct value inside the block
-		],
-		buf);
+    // Offset inside the block
+    x %= getBlockSize(0);
+    y %= getBlockSize(1);
+    z %= getBlockSize(2);
+
+    (getType().*converter)(&m_cache[getType().getSize() *
+            (blockSize * index // correct block
+            + (z * getBlockSize(1) + y) * getBlockSize(0) + x) // correct value inside the block
+            ],
+            buf);
 }
 
 /**
@@ -130,22 +109,21 @@ void grid::NumaLocalCacheGrid::getAt(void* buf, types::Type::converter_t convert
  * @param cache The memory location where the block should be stored
  */
 void grid::NumaLocalCacheGrid::getBlock(unsigned long block,
-	long oldBlock,
-	unsigned long cacheIndex,
-	unsigned char *cache)
-{
-	incCounter(perf::Counter::FILE);
+        long oldBlock,
+        unsigned long cacheIndex,
+        unsigned char *cache) {
+    incCounter(perf::Counter::FILE);
 
-	// TODO change this function so it does not get the block id
-	// but the block coordinates
-	size_t pos[MAX_DIMENSIONS];
-	getBlockPos(block, pos);
+    // TODO change this function so it does not get the block id
+    // but the block coordinates
+    size_t pos[MAX_DIMENSIONS];
+    getBlockPos(block, pos);
 
-	for (int i = 0; i < MAX_DIMENSIONS; i++)
-		pos[i] *= getBlockSize(i);
+    for (int i = 0; i < MAX_DIMENSIONS; i++)
+        pos[i] *= getBlockSize(i);
 
-	getType().load(getInputFile(),
-		pos, getBlockSize(),
-		cache);
+    getType().load(getInputFile(),
+            pos, getBlockSize(),
+            cache);
 }
 

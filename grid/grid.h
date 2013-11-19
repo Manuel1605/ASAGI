@@ -320,7 +320,7 @@ protected:
 	/**
 	 * @return The of blocks that are stored on this node
 	 */
-	unsigned long getLocalBlockCount()
+	unsigned long getLocalBlockCount() const
 	{
 		return (getBlockCount() + getMPISize() - 1) / getMPISize();
 	}

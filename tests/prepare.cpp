@@ -43,6 +43,9 @@
 #define NC_3D "3dgrid.nc"
 #define NC_PERFTEST NC_2D
 #define HEADER_FILENAME "tests.h"
+#ifdef NUMA_SUPPORT
+#define THREADS 4
+#endif
 
 #define WIDTH 51
 #define LENGTH 51
@@ -140,6 +143,9 @@ int main()
 	headerFile << "#define NC_WIDTH " << WIDTH << "\n";
 	headerFile << "#define NC_LENGTH " << LENGTH << "\n";
 	headerFile << "#define NC_HEIGHT " << HEIGHT << "\n";
+#ifdef NUMA_SUPPORT
+        headerFile << "#define THREADS " << THREADS << "\n";
+#endif
 	
 	headerFile << "#endif // TESTS_H\n";
 	headerFile.close();

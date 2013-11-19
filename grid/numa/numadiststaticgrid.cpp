@@ -99,7 +99,7 @@ void grid::NumaDistStaticGrid::getAt(void* buf, types::Type::converter_t convert
         unsigned long x, unsigned long y, unsigned long z) {
     unsigned long block = getBlockByCoords(x, y, z);
     int remoteMPIRank = getBlockRank(block);
-    unsigned long remoteThreadId = getThreadId(getBlockOffset(block));
+    unsigned long remoteThreadId = getThreadId(block);
     if (remoteMPIRank == getMPIRank() && pthread_equal(remoteThreadId, pthread_self())) {
         // Nice, this is a block where we are the master
         NumaLocalStaticGrid::getAt(buf, converter, x, y, z);
@@ -122,11 +122,11 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
     int remoteRank = getBlockRank(block);
     incCounter(perf::Counter::MPI);
     if (remoteRank == getMPIRank()) {
-        //The block is located in the same NUMA Domain,
-        //but in the memspace of another thread.
-        pthread_t remoteId = getThreadId(block);
-        size_t offset = getType().getSize()*getBlockThreadOffset(block);
+        //The block is located in the same NUMA Domain, but in the memspace of another thread.
         
+        pthread_t remoteId = getThreadId(block);
+        size_t offset = getType().getSize()*blockSize*getBlockThreadOffset(block);
+
         //copy the block
         memcpy(cache, ThreadHandler::staticPtr[remoteId][m_id] + offset, getType().getSize()*blockSize);
     } 

@@ -37,7 +37,9 @@
 
 #include "grid/simplegridcontainer.h"
 #include "grid/adaptivegridcontainer.h"
+#ifdef NUMA_SUPPORT
 #include "grid/numa/threadhandler.h"
+#endif
 
 // Static c++ functions
 asagi::Grid* asagi::Grid::create(Type type, unsigned int hint,
@@ -47,9 +49,11 @@ asagi::Grid* asagi::Grid::create(Type type, unsigned int hint,
 		return new grid::AdaptiveGridContainer(type, false, hint, levels);
 	return new grid::SimpleGridContainer(type, false, hint, levels);
 }
+#ifdef NUMA_SUPPORT
 asagi::Grid* asagi::Grid::createThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount){
         return new grid::ThreadHandler(type, hint, levels, tCount);
 }
+#endif
 
 asagi::Grid* asagi::Grid::createArray(Type basicType, unsigned int hint,
 	unsigned int levels)
@@ -234,10 +238,6 @@ void grid_get_buf_3d(grid_handle* handle, void* buf, double x, double y, double 
 }
 
 
-// Thread Functions
-void register_thread(grid_handle* handle){
-     handle->registerThread();
-}
 
 // destructor
 
