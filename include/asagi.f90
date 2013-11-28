@@ -109,7 +109,7 @@ module asagi
       integer( kind=c_int ), value :: levels
       integer( kind=c_int ), value :: tcount
       integer( kind=c_int )        :: grid_create_c
-    end function grid_create_c
+    end function grid_create_threadhandler_c
 
     !> @internal
     function grid_create_array_c( grid_basictype, hint, levels ) bind( c, name="f90grid_create_array" )
