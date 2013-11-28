@@ -100,6 +100,16 @@ module asagi
       integer( kind=c_int ), value :: levels
       integer( kind=c_int )        :: grid_create_c
     end function grid_create_c
+    
+    !> @internal
+    function grid_create_threadhandler_c( grid_type, hint, levels, tcount ) bind( c, name="f90grid_create_threadhandler" )
+      use, intrinsic :: iso_c_binding
+      integer( kind=c_int ), value :: grid_type
+      integer( kind=c_int ), value :: hint
+      integer( kind=c_int ), value :: levels
+      integer( kind=c_int ), value :: tcount
+      integer( kind=c_int )        :: grid_create_c
+    end function grid_create_c
 
     !> @internal
     function grid_create_array_c( grid_basictype, hint, levels ) bind( c, name="f90grid_create_array" )

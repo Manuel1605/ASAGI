@@ -34,7 +34,9 @@
  */
 
 #include "grid/gridcontainer.h"
-
+#ifdef NUMA_SUPPORT
+#include "grid/numa/threadhandler.h"
+#endif
 #include "asagi_f90.h"
 
 // Init functions
@@ -44,6 +46,14 @@ int f90grid_create(grid_type type, int hint, int levels)
 	return static_cast<grid::GridContainer*>(
 		asagi::Grid::create(type, hint, levels))->c2f();
 }
+
+#ifdef NUMA_SUPPORT
+int f90grid_createThreadHandler(grid_type type, int hint, int levels, int tCount)
+{
+	return static_cast<grid::GridContainer*>(
+		asagi::Grid::createThreadHandler(type, hint, levels, tCount))->c2f();
+}
+#endif
 
 int f90grid_create_array(grid_type basic_type, int hint, int levels)
 {
