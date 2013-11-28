@@ -108,7 +108,7 @@ module asagi
       integer( kind=c_int ), value :: hint
       integer( kind=c_int ), value :: levels
       integer( kind=c_int ), value :: tcount
-      integer( kind=c_int )        :: grid_create_c
+      integer( kind=c_int )        :: grid_create_threadhandler_c
     end function grid_create_threadhandler_c
 
     !> @internal
