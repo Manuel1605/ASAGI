@@ -47,13 +47,16 @@ int f90grid_create(grid_type type, int hint, int levels)
 		asagi::Grid::create(type, hint, levels))->c2f();
 }
 
+int f90grid_createThreadHandler(grid_type type, int hint, int levels, int tcount)
+{       
 #ifdef NUMA_SUPPORT
-int f90grid_createThreadHandler(grid_type type, int hint, int levels, int tCount)
-{
 	return static_cast<grid::GridContainer*>(
-		asagi::Grid::createThreadHandler(type, hint, levels, tCount))->c2f();
-}
+		asagi::Grid::createThreadHandler(type, hint, levels, tcount))->c2f();
+#else
+        return -1;
 #endif
+       
+}
 
 int f90grid_create_array(grid_type basic_type, int hint, int levels)
 {

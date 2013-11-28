@@ -44,9 +44,9 @@ extern "C" {
 
 int f90grid_create(grid_type type, int hint,
 	int levels);
-#ifdef NUMA_SUPPORT
+
 int f90grid_create_threadhandler(grid_type type, int hint, int levels, int tcount);
-#endif
+
 int f90grid_create_array(grid_type basic_type, int hint,
 	int levels);
 
