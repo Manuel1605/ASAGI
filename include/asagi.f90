@@ -501,6 +501,40 @@ module asagi
 
       grid_create = grid_create_c( g, h, l )
     end function grid_create
+    
+    function grid_create_threadhandler( grid_type, hint, levels, tcount )
+      integer, optional, intent(in) :: grid_type
+      integer, optional, intent(in) :: hint
+      integer, optional, intent(in) :: levels
+      integer, optional, intent(in) :: tcount
+      integer                       :: grid_create_threadhandler
+
+      !variables send to asagi
+      integer :: g, h, l, t
+
+      if( present( grid_type ) ) then
+        g = grid_type
+      else
+        g = GRID_FLOAT
+      endif
+      if( present( hint ) ) then
+        h = hint
+      else
+        h = GRID_NO_HINT
+      endif
+      if( present( levels ) ) then
+        l = levels
+      else
+        l = 1
+      endif
+      if( present( tcount ) ) then
+        t = tcount
+      else
+        t = 1
+      endif
+
+      grid_create_threadhandler = grid_create_threadhandler_c( g, h, l, t )
+    end function grid_create_threadhandler
 
     !> @ingroup f_interface
     !!
