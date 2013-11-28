@@ -575,6 +575,12 @@ const unsigned int PASS_THROUGH = 0x20;
  */
 grid_handle* grid_create(grid_type type, unsigned int hint,
 	unsigned int levels);
+
+#ifdef NUMA_SUPPORT
+grid_handle* grid_create_threadhandler(grid_type type, unsigned int hint,
+	unsigned int levels, unsigned int tcount);
+#endif
+
 /**
  * @ingroup c_interface
  * 
