@@ -56,13 +56,14 @@ MPI_Comm grid::ThreadHandler::mpiCommunicator=MPI_COMM_NULL;
 
 /**
  * @param type The basic type of the values
- * @param isArray True if the type is an array, false if it is a basic
- *  type
  * @param hint Any performance hints
  * @param levels The number of levels
  * @param tCount The amount of threads
  */
 grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(type) {
+    // Prepare for fortran <-> c translation
+    m_id = m_pointers.add(this);
+    
     m_count = 0;
     ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
@@ -81,6 +82,9 @@ grid::ThreadHandler::~ThreadHandler() {
     delete[] gridHandle;
     free(threadHandle);
     free(mpiWindow);
+    
+    // Remove from fortran <-> c translation
+    m_pointers.remove(m_id);
 }
 
 unsigned char grid::ThreadHandler::getByte3D(double x, double y, double z,
@@ -137,20 +141,22 @@ asagi::Grid::Error grid::ThreadHandler::setParam(const char* name,
 
 asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         unsigned int level) {
-    
+
     pthread_mutex_lock(&mutex);
 
     if(m_count==0){
         masterthreadId = pthread_self();
         NumaLocalStaticGrid::thread=0;
     }
+
     threadHandle[m_count] = pthread_self();
     gridHandle[m_count] = new grid::NumaGridContainer(m_type1, false, m_hint, m_levels);
     gridMap[pthread_self()] = gridHandle[m_count];
     cachePtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
     staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
-    
+
         gridMap[pthread_self()]->open(filename,level);
+
         m_minX = gridMap[pthread_self()]->getXMin();
         m_minY = gridMap[pthread_self()]->getYMin();
         m_minZ = gridMap[pthread_self()]->getZMin();
@@ -172,3 +178,7 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
     pthread_mutex_unlock(&mutex);
     return SUCCESS;  
 }
+
+// Fortran <-> c translation array
+fortran::PointerArray<grid::ThreadHandler>
+	grid::ThreadHandler::m_pointers;

@@ -37,10 +37,10 @@
 #ifndef GRID_THREADHANDLER_H
 #define GRID_THREADHANDLER_H
 
-#include <../include/asagi.h>
+#include <asagi.h>
 
-#include "../fortran/pointerarray.h"
-#include "../types/type.h"
+#include "fortran/pointerarray.h"
+#include "types/type.h"
 #include <map>
 
 namespace grid

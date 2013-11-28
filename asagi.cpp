@@ -86,6 +86,13 @@ grid_handle* grid_create(grid_type type, unsigned int hint, unsigned int levels)
 	return asagi::Grid::create(type, hint, levels);
 }
 
+#ifdef NUMA_SUPPORT
+grid_handle* grid_create_threadhandler(grid_type type, unsigned int hint, unsigned int levels, unsigned int tcount) 
+{
+        return asagi::Grid::createThreadHandler(type, hint, levels, tcount);
+}
+#endif
+
 grid_handle* grid_create_array(grid_type basic_type, unsigned int hint, unsigned int levels)
 {
 	return asagi::Grid::createArray(basic_type, hint, levels);

@@ -431,7 +431,6 @@ public:
 	 */
 	static asagi::Grid* create(Type type = FLOAT,
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
-        
         /**
 	 * @ingroup cxx_interface
 	 * 
@@ -442,10 +441,10 @@ public:
 	 * @param levels The number of level this grid should have
          * @param Count of Threads
 	 */
-#ifdef NUMA_SUPPORT
+
 	static asagi::Grid* createThreadHandler(Type type = FLOAT,
 		unsigned int hint=NO_HINT, unsigned int levels=1, unsigned int tCount=1);
-#endif
+
 	/**
 	 * @ingroup cxx_interface
 	 * 
@@ -577,6 +576,11 @@ grid_handle* grid_create(grid_type type, unsigned int hint,
 	unsigned int levels);
 
 #ifdef NUMA_SUPPORT
+/**
+ * @ingroup c_interface
+ * 
+ * @see asagi::Grid::createThreadHandler()
+ */
 grid_handle* grid_create_threadhandler(grid_type type, unsigned int hint,
 	unsigned int levels, unsigned int tcount);
 #endif

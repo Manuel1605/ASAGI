@@ -502,6 +502,9 @@ module asagi
       grid_create = grid_create_c( g, h, l )
     end function grid_create
     
+    !> @ingroup f_interface
+    !!
+    !! @see asagi::Grid::createThreadHandler()
     function grid_create_threadhandler( grid_type, hint, levels, tcount )
       integer, optional, intent(in) :: grid_type
       integer, optional, intent(in) :: hint

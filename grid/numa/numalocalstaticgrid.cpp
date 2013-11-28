@@ -73,7 +73,7 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
         ThreadHandler::staticPtr[pthread_self()][m_id] = m_data;
     }
     else {
-        //The memory was already allocated from the masterthread.
+        //The memory was already allocated by the masterthread.
    
                 //Simply shift the Pointer in the right space.
                 m_data = (ThreadHandler::staticPtr[ThreadHandler::masterthreadId])[m_id] + (getType().getSize() * blockSize * getThreadBlockCount() * thread);

@@ -50,7 +50,7 @@ int f90grid_create(grid_type type, int hint, int levels)
 int f90grid_create_threadhandler(grid_type type, int hint, int levels, int tcount)
 {       
 #ifdef NUMA_SUPPORT
-	return static_cast<grid::GridContainer*>(
+	return static_cast<grid::ThreadHandler*>(
 		asagi::Grid::createThreadHandler(type, hint, levels, tcount))->c2f();
 #else
         return -1;
@@ -85,7 +85,11 @@ grid_error f90grid_set_comm(int grid_id, int comm)
 	// We do not use a preprocessor in the fortran include file to disable
 	// this completly. Instead this function always return an error.
 	return asagi::Grid::MPI_ERROR;
-#else // ASAGI_NOMPI
+#elif NUMA_SUPPORT
+        // MPI_Comm_f2c expects an MPI_Fint, however iso_c_bindings
+	// already converts this parameter into c integer
+	return grid::ThreadHandler::f2c(grid_id)->setComm(MPI_Comm_f2c(comm));
+#else
 	// MPI_Comm_f2c expects an MPI_Fint, however iso_c_bindings
 	// already converts this parameter into c integer
 	return grid::GridContainer::f2c(grid_id)->setComm(MPI_Comm_f2c(comm));
@@ -95,73 +99,134 @@ grid_error f90grid_set_comm(int grid_id, int comm)
 grid_error f90grid_set_param(int grid_id, const char* name,
 	const char* value, int level)
 {
+#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->setParam(name, value, level);
+#else
 	return grid::GridContainer::f2c(grid_id)->setParam(name, value, level);
+#endif
 }
 
 grid_error f90grid_open(int grid_id, const char* filename,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->open(filename, level);
+#ifdef NUMA_SUPPORT
+            return grid::ThreadHandler::f2c(grid_id)->open(filename, level);
+#else
+            return grid::GridContainer::f2c(grid_id)->open(filename, level);
+#endif
+
 }
 
 // Min/Max functions
 
 double f90grid_min_x(int grid_id)
 {
-	return grid::GridContainer::f2c(grid_id)->getXMin();
+#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->getXMin();
+#else
+        return grid::GridContainer::f2c(grid_id)->getXMin();
+#endif
 }
 double f90grid_min_y(int grid_id)
 {
-	return grid::GridContainer::f2c(grid_id)->getYMin();
+#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->getYMin();
+#else
+        return grid::GridContainer::f2c(grid_id)->getYMin();
+#endif
 }
 double f90grid_min_z ( int grid_id )
 {
-	return grid::GridContainer::f2c(grid_id)->getZMin();
+	#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->getZMin();
+#else
+        return grid::GridContainer::f2c(grid_id)->getZMin();
+#endif
 }
 double f90grid_max_x(int grid_id)
 {
-	return grid::GridContainer::f2c(grid_id)->getXMax();
+#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->getXMax();
+#else
+        return grid::GridContainer::f2c(grid_id)->getXMax();
+#endif
 }
 double f90grid_max_y(int grid_id)
 {
-	return grid::GridContainer::f2c(grid_id)->getYMax();
+#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->getYMax();
+#else
+        return grid::GridContainer::f2c(grid_id)->getYMax();
+#endif
 }
 double f90grid_max_z ( int grid_id )
 {
-	return grid::GridContainer::f2c(grid_id)->getZMax();
+#ifdef NUMA_SUPPORT
+        return grid::ThreadHandler::f2c(grid_id)->getZMax();
+#else
+        return grid::GridContainer::f2c(grid_id)->getZMax();
+#endif
 }
 
 int f90grid_var_size ( int grid_id )
 {
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getVarSize();
+#else
 	return grid::GridContainer::f2c(grid_id)->getVarSize();
+#endif
 }
 
 // 1d functions
 
 unsigned char f90grid_get_byte_1d(int grid_id, double x, int level)
 {
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getByte1D(x, level);
+#else
 	return grid::GridContainer::f2c(grid_id)->getByte1D(x, level);
+#endif
 }
 int f90grid_get_int_1d(int grid_id, double x, int level)
 {
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getInt1D(x, level);
+#else
 	return grid::GridContainer::f2c(grid_id)->getInt1D(x, level);
+#endif
 }
 long f90grid_get_long_1d(int grid_id, double x, int level)
 {
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getLong1D(x, level);
+#else
 	return grid::GridContainer::f2c(grid_id)->getLong1D(x, level);
+#endif
 }
 float f90grid_get_float_1d(int grid_id, double x, int level)
 {
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getFloat1D(x, level);
+#else
 	return grid::GridContainer::f2c(grid_id)->getFloat1D(x, level);
+#endif
 }
 double f90grid_get_double_1d(int grid_id, double x, int level)
 {
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getDouble1D(x, level);
+#else
 	return grid::GridContainer::f2c(grid_id)->getDouble1D(x, level);
+#endif
 }
 void f90grid_get_buf_1d(int grid_id, void* buf, double x,
 	int level)
 {
-	grid::GridContainer::f2c(grid_id)->getBuf1D(buf, x, level);
+#ifdef NUMA_SUPPORT
+    	return grid::ThreadHandler::f2c(grid_id)->getBuf1D(buf, x, level);
+#else
+	return grid::GridContainer::f2c(grid_id)->getBuf1D(buf, x, level);
+#endif
 }
 
 // 2d functions
@@ -169,31 +234,55 @@ void f90grid_get_buf_1d(int grid_id, void* buf, double x,
 unsigned char f90grid_get_byte_2d(int grid_id, double x, double y,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getByte2D(x, y, level);
+#ifdef NUMA_SUPPORT
+	return grid::ThreadHandler::f2c(grid_id)->getByte2D(x, y, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getByte2D(x, y, level);
+#endif
 }
 int f90grid_get_int_2d(int grid_id, double x, double y, int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getInt2D(x, y, level);
+#ifdef NUMA_SUPPORT
+	return grid::ThreadHandler::f2c(grid_id)->getInt2D(x, y, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getInt2D(x, y, level);
+#endif
 }
 long f90grid_get_long_2d(int grid_id, double x, double y,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getLong2D(x, y, level);
+#ifdef NUMA_SUPPORT
+	return grid::ThreadHandler::f2c(grid_id)->getLong2D(x, y, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getLong2D(x, y, level);
+#endif
 }
 float f90grid_get_float_2d(int grid_id, double x, double y,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getFloat2D(x, y, level);
+#ifdef NUMA_SUPPORT
+	return grid::ThreadHandler::f2c(grid_id)->getFloat2D(x, y, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getFloat2D(x, y, level);
+#endif
 }
 double f90grid_get_double_2d(int grid_id, double x, double y,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getDouble2D(x, y, level);
+#ifdef NUMA_SUPPORT
+	return grid::ThreadHandler::f2c(grid_id)->getDouble2D(x, y, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getDouble2D(x, y, level);
+#endif
 }
 void f90grid_get_buf_2d(int grid_id, void* buf, double x, double y,
 	int level)
 {
-	grid::GridContainer::f2c(grid_id)->getBuf2D(buf, x, y, level);
+#ifdef NUMA_SUPPORT
+	return grid::ThreadHandler::f2c(grid_id)->getBuf2D(buf, x, y, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getBuf2D(buf, x, y, level);
+#endif
 }
 
 // 3d functions
@@ -201,37 +290,65 @@ void f90grid_get_buf_2d(int grid_id, void* buf, double x, double y,
 unsigned char f90grid_get_byte_3d(int grid_id, double x, double y, double z,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getByte3D(x, y, z, level);
+#ifdef NUMA_SUPPORT 
+	return grid::ThreadHandler::f2c(grid_id)->getByte3D(x, y, z, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getByte3D(x, y, z, level);
+#endif
 }
 int f90grid_get_int_3d(int grid_id, double x, double y, double z,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getInt3D(x, y, z, level);
+#ifdef NUMA_SUPPORT 
+	return grid::ThreadHandler::f2c(grid_id)->getInt3D(x, y, z, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getInt3D(x, y, z, level);
+#endif
 }
 long f90grid_get_long_3d(int grid_id, double x, double y, double z,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getLong3D(x, y, z, level);
+#ifdef NUMA_SUPPORT 
+	return grid::ThreadHandler::f2c(grid_id)->getLong3D(x, y, z, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getLong3D(x, y, z, level);
+#endif
 }
 float f90grid_get_float_3d(int grid_id, double x, double y, double z,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getFloat3D(x, y, z, level);
+#ifdef NUMA_SUPPORT 
+	return grid::ThreadHandler::f2c(grid_id)->getFloat3D(x, y, z, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getFloat3D(x, y, z, level);
+#endif
 }
 double f90grid_get_double_3d(int grid_id, double x, double y, double z,
 	int level)
 {
-	return grid::GridContainer::f2c(grid_id)->getDouble3D(x, y, z, level);
+#ifdef NUMA_SUPPORT 
+	return grid::ThreadHandler::f2c(grid_id)->getDouble3D(x, y, z, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getDouble3D(x, y, z, level);
+#endif
 }
 void f90grid_get_buf_3d(int grid_id, void* buf, double x, double y, double z,
 	int level)
 {
-	grid::GridContainer::f2c(grid_id)->getBuf3D(buf, x, y, z, level);
+#ifdef NUMA_SUPPORT 
+	return grid::ThreadHandler::f2c(grid_id)->getBuf3D(buf, x, y, z, level);
+#else
+        return grid::GridContainer::f2c(grid_id)->getBuf3D(buf, x, y, z, level);
+#endif
 }
 
 // destructor
 
 void f90grid_close(int grid_id)
 {
+#ifdef NUMA_SUPPORT
+        delete grid::ThreadHandler::f2c(grid_id);
+#else
 	delete grid::GridContainer::f2c(grid_id);
+#endif
 }
