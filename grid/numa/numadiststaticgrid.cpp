@@ -75,10 +75,10 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
     if (error != asagi::Grid::SUCCESS)
         return error;
 
-    // Only the Masterthread 
     // Create the mpi window for distributed blocks
-    if (pthread_equal(ThreadHandler::masterthreadId, pthread_self())) {
-        if (MPI_Win_create(getData(),
+    //if(pthread_equal(ThreadHandler::masterthreadId, pthread_self())){
+    if(ThreadHandler::mpiWindow[m_id]==MPI_WIN_NULL){
+        if (MPI_Win_create(ThreadHandler::staticPtr[ThreadHandler::masterthreadId][m_id],
                 getType().getSize() * blockSize * masterBlockCount,
                 getType().getSize(),
                 MPI_INFO_NULL,
@@ -87,7 +87,7 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
             return asagi::Grid::MPI_ERROR;
         
         //Other Threads has to know the window.
-        ThreadHandler::mpiWindow[m_id] = m_window;
+      ThreadHandler::mpiWindow[m_id] = m_window;
     } else {
         m_window = ThreadHandler::mpiWindow[m_id];
     }

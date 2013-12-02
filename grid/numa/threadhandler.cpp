@@ -63,13 +63,16 @@ MPI_Comm grid::ThreadHandler::mpiCommunicator=MPI_COMM_NULL;
 grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(type) {
     // Prepare for fortran <-> c translation
     m_id = m_pointers.add(this);
-    
     m_count = 0;
     ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
     threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
 #ifndef ASAGI_NOMPI
     mpiWindow = (MPI_Win*) malloc(sizeof(MPI_Win)*levels);
+    for(unsigned int i=0; i<levels; i++){
+        ThreadHandler::mpiWindow[i]=MPI_WIN_NULL;
+    }
+
 #endif
 }
 
