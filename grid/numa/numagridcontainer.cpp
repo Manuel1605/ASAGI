@@ -121,7 +121,6 @@ asagi::Grid::Error grid::NumaGridContainer::setParam(const char* name, const cha
 
     assert(level < m_levels);
     return m_grids[level]->setParam(name, value);
-    return MPI_ERROR;
 }
 
 asagi::Grid::Error grid::NumaGridContainer::open(const char* filename, unsigned int level) {
@@ -148,7 +147,7 @@ asagi::Grid::Error grid::NumaGridContainer::open(const char* filename, unsigned 
 #ifndef ASAGI_NOMPI
 asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm) {
     //Was the communicator already set, by another thread?
-    if (ThreadHandler::mpiCommunicator != MPI_COMM_NULL){
+   /* if (ThreadHandler::mpiCommunicator != MPI_COMM_NULL){
         // Was the communicator already set by User?
         if(m_communicator!=MPI_COMM_NULL)
             return SUCCESS;
@@ -157,12 +156,15 @@ asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm) {
         m_communicator = ThreadHandler::mpiCommunicator;        
         MPI_Comm_rank(m_communicator, &m_mpiRank);
         MPI_Comm_size(m_communicator, &m_mpiSize);
-    }
+    }*/
+    
+    if(m_communicator!=MPI_COMM_NULL)
+            return SUCCESS;
     
     //No Communicator was set. I´m the first Thread. So setup the Communicator.
     if (MPI_Comm_dup(comm, &m_communicator) != MPI_SUCCESS)
         return MPI_ERROR;
-    ThreadHandler::mpiCommunicator = m_communicator;
+    //ThreadHandler::mpiCommunicator = m_communicator;
     MPI_Comm_rank(m_communicator, &m_mpiRank);
     MPI_Comm_size(m_communicator, &m_mpiSize);
 
@@ -189,7 +191,6 @@ grid::Grid* grid::NumaGridContainer::createGrid(
 #ifndef ASAGI_NOMPI
     //if (hint & LARGE_GRID)
     //return new DistCacheGrid(*this, hint, id);
-
     return new NumaDistStaticGrid(*this, hint, id);
 #endif // ASAGI_NOMPI
 }

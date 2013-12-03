@@ -62,8 +62,6 @@ asagi::Grid::Error grid::NumaLocalCacheGrid::init() {
     if (error != asagi::Grid::SUCCESS)
         return error;
 
-    //Save the Pointer for other threads
-    ThreadHandler::cachePtr[pthread_self()][m_id] = m_cache;
     m_blockManager.init(getBlocksPerThread(), getHandsDiff());
     return asagi::Grid::SUCCESS;
 }

@@ -68,18 +68,9 @@ public:
          * Every Thread can access and modify this variables.
          */
         
-        /** Static Map. Pointer for NumaLocalCacheGrid */
-        static std::map<pthread_t, unsigned char**> cachePtr;
-        
         /** Static Map. Pointer for NumaLocalStaticGrid */
         static std::map<pthread_t, unsigned char**> staticPtr;
-#ifndef ASAGI_NOMPI
-        /** Static MPI Window. Pointer for NumaDistStaticGrid */
-        static MPI_Win* mpiWindow;
         
-        /** Static MPI Communicator.*/
-        static MPI_Comm mpiCommunicator;
-#endif
         /** Id of the Masterthread */
         static pthread_t masterthreadId;
         
@@ -96,11 +87,11 @@ public:
         
         /**Condition for synchronizing threads */
         static pthread_cond_t cond;
+        
 
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
 	int m_id;
-	
 #ifndef ASAGI_NOMPI
 	/** The communicator we use */
 	MPI_Comm m_communicator;
@@ -118,17 +109,7 @@ private:
 	
 	/** True if the container should skip MPI calls like MPI_Comm_dup */
 	bool m_noMPI;
-        
-        
-        
-        
-        /**
-         * Handle of the Masterthread
-         */
-        asagi::Grid* masterHandle;
-        
-        
-        
+                    
         /**
          * Array of Gridhandles
          */

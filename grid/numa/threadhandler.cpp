@@ -44,14 +44,9 @@
 pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t grid::ThreadHandler::cond  = PTHREAD_COND_INITIALIZER;
 std::map<pthread_t, unsigned char**> grid::ThreadHandler::staticPtr;
-std::map<pthread_t, unsigned char**> grid::ThreadHandler::cachePtr; 
 pthread_t* grid::ThreadHandler::threadHandle;
 unsigned int grid::ThreadHandler::tCount;
 pthread_t grid::ThreadHandler::masterthreadId;
-#ifndef ASAGI_NOMPI
-MPI_Win* grid::ThreadHandler::mpiWindow;
-MPI_Comm grid::ThreadHandler::mpiCommunicator=MPI_COMM_NULL;
-#endif
 
 
 /**
@@ -67,13 +62,6 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
     ThreadHandler::tCount= tCount;
     gridHandle = new asagi::Grid*[tCount];
     threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
-#ifndef ASAGI_NOMPI
-    mpiWindow = (MPI_Win*) malloc(sizeof(MPI_Win)*levels);
-    for(unsigned int i=0; i<levels; i++){
-        ThreadHandler::mpiWindow[i]=MPI_WIN_NULL;
-    }
-
-#endif
 }
 
 /** 
@@ -82,9 +70,11 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
 grid::ThreadHandler::~ThreadHandler() {
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mutex);
+    for(unsigned int i=0; i< tCount; i++){
+        delete gridHandle[i];
+    }
     delete[] gridHandle;
     free(threadHandle);
-    free(mpiWindow);
     
     // Remove from fortran <-> c translation
     m_pointers.remove(m_id);
@@ -155,7 +145,6 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
     threadHandle[m_count] = pthread_self();
     gridHandle[m_count] = new grid::NumaGridContainer(m_type1, false, m_hint, m_levels);
     gridMap[pthread_self()] = gridHandle[m_count];
-    cachePtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
     staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
 
         gridMap[pthread_self()]->open(filename,level);

@@ -56,7 +56,7 @@ grid::NumaLocalStaticGrid::NumaLocalStaticGrid(const NumaGridContainer &containe
 }
 
 grid::NumaLocalStaticGrid::~NumaLocalStaticGrid() {
-    m_allocator.free(m_data);
+   //m_allocator.free(ThreadHandler::staticPtr[ThreadHandler::masterthreadId][m_id]);
 }
 
 asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
