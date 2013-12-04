@@ -45,7 +45,7 @@ extern "C" {
 int f90grid_create(grid_type type, int hint,
 	int levels);
 
-int f90grid_create_threadhandler(grid_type type, int hint, int levels, int tcount);
+int f90grid_create_for_numa(grid_type type, int hint, int levels, int tcount);
 
 int f90grid_create_array(grid_type basic_type, int hint,
 	int levels);

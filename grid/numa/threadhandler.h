@@ -160,11 +160,11 @@ public:
 	 */
 	virtual Error open(const char* filename, unsigned int level = 0);
 	
-	double getXMin() const
+        double getXMin() const
 	{
 		return m_minX;
 	}
-	double getYMin() const
+        double getYMin() const
 	{
 		return m_minY;
 	}
@@ -173,7 +173,8 @@ public:
 		return m_minZ;
 	}
 	double getXMax() const
-	{
+        {
+        
 		return m_maxX;
 	}
 	double getYMax() const
@@ -256,31 +257,6 @@ public:
 
 	unsigned long getCounter(const char* name, unsigned int level = 0);
 	
-#ifndef ASAGI_NOMPI
-	/**
-	 * @return The commicator used for all grids of this container
-	 */
-	MPI_Comm getMPICommunicator() const
-	{
-		return m_communicator;
-	}
-#endif // ASAGI_NOMPI
-	
-	/**
-	 * @return The current MPI rank
-	 */
-	int getMPIRank() const
-	{
-		return m_mpiRank;
-	}
-	
-	/**
-	 * @return The size of the MPI communicator
-	 */
-	int getMPISize() const
-	{
-		return m_mpiSize;
-	}
 	
 	/**
 	 * @return The type assosiated with this grid
@@ -301,7 +277,8 @@ public:
 	/**
 	 * Converts the C pointer of the grid to the Fortran identifier
 	 * 
-	 * @return The unique index of the grid container
+	 * @return The unique index of the Threadhandler 
+         *
 	 */
 	int c2f() const
 	{

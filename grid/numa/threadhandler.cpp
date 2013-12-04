@@ -35,7 +35,7 @@
  */
 
 #include "threadhandler.h"
-#include "numagridcontainer.h"
+#include "numasimplegridcontainer.h"
 #include "numalocalcachegrid.h"
 #include "numalocalstaticgrid.h"
 #include <pthread.h>
@@ -139,25 +139,24 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
 
     if(m_count==0){
         masterthreadId = pthread_self();
-        NumaLocalStaticGrid::thread=0;
     }
 
     threadHandle[m_count] = pthread_self();
-    gridHandle[m_count] = new grid::NumaGridContainer(m_type1, false, m_hint, m_levels);
+    gridHandle[m_count] = new grid::SimpleGridContainer(m_type1, false, m_hint, m_levels);
     gridMap[pthread_self()] = gridHandle[m_count];
     staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
 
-        gridMap[pthread_self()]->open(filename,level);
+    gridMap[pthread_self()]->open(filename,level);
 
-        m_minX = gridMap[pthread_self()]->getXMin();
-        m_minY = gridMap[pthread_self()]->getYMin();
-        m_minZ = gridMap[pthread_self()]->getZMin();
-
-        m_maxX = gridMap[pthread_self()]->getXMax();
-        m_maxY = gridMap[pthread_self()]->getYMax();
-        m_maxZ = gridMap[pthread_self()]->getZMax();
-
-        m_count++;     
+    if(pthread_equal(masterthreadId, pthread_self())){
+        m_minX=gridMap[pthread_self()]->getXMin();
+        m_minY=gridMap[pthread_self()]->getYMin();
+        m_minZ=gridMap[pthread_self()]->getZMin();
+        m_maxX=gridMap[pthread_self()]->getXMax();
+        m_maxY=gridMap[pthread_self()]->getYMax();
+        m_maxZ=gridMap[pthread_self()]->getZMax();
+    }
+    m_count++;     
        
         //Send signal and set condition. The Masterthread has allocated the Memory
         if(m_count==tCount)
@@ -170,6 +169,8 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
     pthread_mutex_unlock(&mutex);
     return SUCCESS;  
 }
+
+
 
 // Fortran <-> c translation array
 fortran::PointerArray<grid::ThreadHandler>

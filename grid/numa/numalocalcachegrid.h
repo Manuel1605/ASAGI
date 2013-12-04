@@ -50,7 +50,7 @@ namespace grid
  * A grid that maintains a local cache for blocks. Can be combined with other
  * grid, e.g. NumaStaticGrid.
  */
-class NumaLocalCacheGrid : virtual public NumaGrid
+class NumaLocalCacheGrid : virtual public Grid
 {
 private:
 	/** Cache memory */
@@ -74,7 +74,7 @@ private:
 	std::mutex m_slaveMutex;
 public:
     
-	NumaLocalCacheGrid(const NumaGridContainer &container,
+	NumaLocalCacheGrid(const GridContainer &container,
 		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
 		const allocator::Allocator<unsigned char> &allocator
 			= allocator::DefaultAllocator<unsigned char>::allocator);

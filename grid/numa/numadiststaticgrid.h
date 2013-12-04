@@ -61,7 +61,7 @@ private:
         /** ID of the grid. For Multilevelsupport */
         unsigned int m_id;
 public:
-	NumaDistStaticGrid(const NumaGridContainer &container,
+	NumaDistStaticGrid(const GridContainer &container,
 		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0);
 	virtual ~NumaDistStaticGrid();
 	

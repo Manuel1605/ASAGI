@@ -100,16 +100,16 @@ module asagi
       integer( kind=c_int ), value :: levels
       integer( kind=c_int )        :: grid_create_c
     end function grid_create_c
-    
+
     !> @internal
-    function grid_create_threadhandler_c( grid_type, hint, levels, tcount ) bind( c, name="f90grid_create_threadhandler" )
+    function grid_create_for_numa_c( grid_type, hint, levels, tcount ) bind( c, name="f90grid_create_for_numa" )
       use, intrinsic :: iso_c_binding
       integer( kind=c_int ), value :: grid_type
       integer( kind=c_int ), value :: hint
       integer( kind=c_int ), value :: levels
       integer( kind=c_int ), value :: tcount
-      integer( kind=c_int )        :: grid_create_threadhandler_c
-    end function grid_create_threadhandler_c
+      integer( kind=c_int )        :: grid_create_for_numa_c
+    end function grid_create_for_numa_c
 
     !> @internal
     function grid_create_array_c( grid_basictype, hint, levels ) bind( c, name="f90grid_create_array" )
@@ -501,16 +501,16 @@ module asagi
 
       grid_create = grid_create_c( g, h, l )
     end function grid_create
-    
+ 
     !> @ingroup f_interface
     !!
     !! @see asagi::Grid::createThreadHandler()
-    function grid_create_threadhandler( grid_type, hint, levels, tcount )
+    function grid_create_for_numa( grid_type, hint, levels, tcount )
       integer, optional, intent(in) :: grid_type
       integer, optional, intent(in) :: hint
       integer, optional, intent(in) :: levels
       integer, optional, intent(in) :: tcount
-      integer                       :: grid_create_threadhandler
+      integer                       :: grid_create_for_numa
 
       !variables send to asagi
       integer :: g, h, l, t
@@ -535,10 +535,8 @@ module asagi
       else
         t = 1
       endif
-
-      grid_create_threadhandler = grid_create_threadhandler_c( g, h, l, t )
-    end function grid_create_threadhandler
-
+      grid_create_for_numa = grid_create_for_numa_c( g, h, l, t )
+    end function grid_create_for_numa
     !> @ingroup f_interface
     !!
     !! @see asagi::Grid::createArray()

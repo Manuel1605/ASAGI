@@ -21,7 +21,7 @@
  *  der GNU General Public License, wie von der Free Software Foundation,
  *  Version 3 der Lizenz oder (nach Ihrer Option) jeder spaeteren
  *  veroeffentlichten Version, weiterverbreiten und/oder modifizieren.
- * 
+ *
  *  ASAGI wird in der Hoffnung, dass es nuetzlich sein wird, aber
  *  OHNE JEDE GEWAEHELEISTUNG, bereitgestellt; sogar ohne die implizite
  *  Gewaehrleistung der MARKTFAEHIGKEIT oder EIGNUNG FUER EINEN BESTIMMTEN
@@ -31,150 +31,214 @@
  *  Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
  * 
  * @copyright 2012-2013 Sebastian Rettenberger <rettenbs@in.tum.de>
- * @copyright 2013-2014 Manuel Fasching <manuel.fasching@tum.de>
  */
 
 #include "numagridcontainer.h"
-#include "numalocalstaticgrid.h"
+
 #include "numalocalcachegrid.h"
+#include "numalocalstaticgrid.h"
 #ifndef ASAGI_NOMPI
 #include "numadiststaticgrid.h"
-#endif
+#endif // ASAGI_NOMPI
 
-#include <algorithm>
+#include "types/arraytype.h"
+#include "types/basictype.h"
+#include "types/structtype.h"
+
+#include <cassert>
+#include <cstring>
+#include <limits>
 
 /**
- * @see GridContainer::GridContainer()
+ * @param type The basic type of the values
+ * @param isArray True if the type is an array, false if it is a basic
+ *  type
+ * @param hint Any performance hints
+ * @param levels The number of levels
  */
-grid::NumaGridContainer::NumaGridContainer(Type type, bool isArray, unsigned int hint, unsigned int levels) : GridContainer(type, isArray, hint, levels) {
-    m_grids = new grid::Grid*[m_levels];
-    for (unsigned int i = 0; i < levels; i++)
-        m_grids[i] = createGrid(hint, i);
+grid::GridContainer::GridContainer(Type type, bool isArray, unsigned int hint,
+	unsigned int levels)
+	: m_levels(levels)
+{
+	assert(levels > 0); // 0 levels don't make sense
+	
+	// Prepare for fortran <-> c translation
+	m_id = m_pointers.add(this);
+	
+#ifdef ASAGI_NOMPI
+	m_noMPI = true;
+#else // ASAGI_NOMPI
+	m_noMPI = hint & NOMPI;
+	m_communicator = MPI_COMM_NULL;
+#endif // ASAGI_NOMPI
+	
+	if (isArray) {
+		switch (type) {
+		case BYTE:
+			m_type = new types::ArrayType<unsigned char>();
+			break;
+		case INT:
+			m_type = new types::ArrayType<int>();
+			break;
+		case LONG:
+			m_type = new types::ArrayType<long>();
+			break;
+		case FLOAT:
+			m_type = new types::ArrayType<float>();
+			break;
+		case DOUBLE:
+			m_type = new types::ArrayType<double>();
+			break;
+		default:
+			m_type = 0L;
+			assert(false);
+			break;
+		}
+	} else {
+		switch (type) {
+		case BYTE:
+			m_type = new types::BasicType<unsigned char>();
+			break;
+		case INT:
+			m_type = new types::BasicType<int>();
+			break;
+		case LONG:
+			m_type = new types::BasicType<long>();
+			break;
+		case FLOAT:
+			m_type = new types::BasicType<float>();
+			break;
+		case DOUBLE:
+			m_type = new types::BasicType<double>();
+			break;
+		default:
+			m_type = 0L;
+			assert(false);
+			break;
+		}
+	}
+	
+	m_minX = m_minY = m_minZ = -std::numeric_limits<double>::infinity();
+	m_maxX = m_maxY = m_maxZ = std::numeric_limits<double>::infinity();
+	
+	m_valuePos = CELL_CENTERED;
+	
+	// Default values (probably only useful when compiled without MPI support)
+	m_mpiRank = 0;
+	m_mpiSize = 1;
 }
 
-grid::NumaGridContainer::~NumaGridContainer() {
-    for (unsigned int i = 0; i < m_levels; i++)
-        delete m_grids[i];
-    delete [] m_grids;
+/**
+ * @param count Number of elements in the struct
+ * @param blockLength Size of each element in the struct
+ * @param displacements Offset of each element in the struct
+ * @param types Type of each element in the struct
+ * @param hint Any performance hints
+ * @param levels The number of levels
+ */
+grid::GridContainer::GridContainer(unsigned int count,
+		unsigned int blockLength[],
+		unsigned long displacements[],
+		asagi::Grid::Type types[],
+		unsigned int hint, unsigned int levels)
+	: m_levels(levels)
+{
+	assert(levels > 0); // 0 levels don't make sense
+	
+	// Prepare for fortran <-> c translation
+	m_id = m_pointers.add(this);
+	
+#ifdef ASAGI_NOMPI
+	m_noMPI = true;
+#else // ASAGI_NOMPI
+	m_noMPI = hint & NOMPI;
+	m_communicator = MPI_COMM_NULL;
+#endif // ASAGI_NOMPI
+	
+	m_type = types::createStruct(count, blockLength,
+		displacements, types);
+	
+	m_minX = m_minY = m_minZ = -std::numeric_limits<double>::infinity();
+	m_maxX = m_maxY = m_maxZ = std::numeric_limits<double>::infinity();
+	
+	m_valuePos = CELL_CENTERED;
+	
+	// Default values (probably only useful when compiled without MPI support)
+	m_mpiRank = 0;
+	m_mpiSize = 1;
 }
 
-unsigned char grid::NumaGridContainer::getByte3D(double x, double y,
-        double z, unsigned int level) {
-    assert(level < m_levels);
 
-    return m_grids[level]->getByte(x, y, z);
-}
-
-int grid::NumaGridContainer::getInt3D(double x, double y,
-        double z, unsigned int level) {
-    assert(level < m_levels);
-
-    return m_grids[level]->getInt(x, y, z);
-}
-
-long grid::NumaGridContainer::getLong3D(double x, double y,
-        double z, unsigned int level) {
-    assert(level < m_levels);
-
-    return m_grids[level]->getLong(x, y, z);
-}
-
-float grid::NumaGridContainer::getFloat3D(double x, double y,
-        double z, unsigned int level) {
-    assert(level < m_levels);
-
-    return m_grids[level]->getFloat(x, y, z);
-}
-
-double grid::NumaGridContainer::getDouble3D(double x, double y, double z,
-        unsigned int level) {
-    assert(level < m_levels);
-
-    return m_grids[level]->getDouble(x, y, z);
-}
-
-void grid::NumaGridContainer::getBuf3D(void* buf, double x, double y, double z,
-        unsigned int level) {
-    assert(level < m_levels);
-
-    m_grids[level]->getBuf(buf, x, y, z);
-}
-
-bool grid::NumaGridContainer::exportPng(const char* filename, unsigned int level) {
-    assert(level < m_levels);
-
-    return m_grids[level]->exportPng(filename);
-}
-
-unsigned long grid::NumaGridContainer::getCounter(const char* name, unsigned int level) {
-    assert(level < m_levels);
-
-    return m_grids[level]->getCounter(name);
-}
-
-asagi::Grid::Error grid::NumaGridContainer::setParam(const char* name, const char* value,
-        unsigned int level) {
-    Error result;
-    result = GridContainer::setParam(name, value, level);
-    if (result != UNKNOWN_PARAM)
-        return result;
-
-    assert(level < m_levels);
-    return m_grids[level]->setParam(name, value);
-}
-
-asagi::Grid::Error grid::NumaGridContainer::open(const char* filename, unsigned int level) {
-    Error result;
-    result = GridContainer::open(filename, level);
-
-    if (result != SUCCESS)
-        return result;
-
-    result = m_grids[level]->open(filename);
-    if (result != SUCCESS)
-        return result;
-    m_minX = std::max(m_minX, m_grids[level]->getXMin());
-    m_minY = std::max(m_minY, m_grids[level]->getYMin());
-    m_minZ = std::max(m_minZ, m_grids[level]->getZMin());
-
-    m_maxX = std::min(m_maxX, m_grids[level]->getXMax());
-    m_maxY = std::min(m_maxY, m_grids[level]->getYMax());
-    m_maxZ = std::min(m_maxZ, m_grids[level]->getZMax());
-
-    return result;
+grid::GridContainer::~GridContainer()
+{
+	delete m_type;
+	
+#ifndef ASAGI_NOMPI
+	if (m_communicator != MPI_COMM_NULL)
+		MPI_Comm_free(&m_communicator);
+#endif // ASAGI_NOMPI
+	
+	// Remove from fortran <-> c translation
+	m_pointers.remove(m_id);
 }
 
 #ifndef ASAGI_NOMPI
-asagi::Grid::Error grid::NumaGridContainer::setComm(MPI_Comm comm) {
-    //Was the communicator already set, by another thread?
-   /* if (ThreadHandler::mpiCommunicator != MPI_COMM_NULL){
-        // Was the communicator already set by User?
-        if(m_communicator!=MPI_COMM_NULL)
-            return SUCCESS;
-        
-        //The communicator is already set. So use the existing one.
-        m_communicator = ThreadHandler::mpiCommunicator;        
-        MPI_Comm_rank(m_communicator, &m_mpiRank);
-        MPI_Comm_size(m_communicator, &m_mpiSize);
-    }*/
-    
-    if(m_communicator!=MPI_COMM_NULL)
-            return SUCCESS;
-    
-    //No Communicator was set. I´m the first Thread. So setup the Communicator.
-    if (MPI_Comm_dup(comm, &m_communicator) != MPI_SUCCESS)
-        return MPI_ERROR;
-    //ThreadHandler::mpiCommunicator = m_communicator;
-    MPI_Comm_rank(m_communicator, &m_mpiRank);
-    MPI_Comm_size(m_communicator, &m_mpiSize);
+asagi::Grid::Error grid::GridContainer::setComm(MPI_Comm comm)
+{
+	if (m_communicator != MPI_COMM_NULL)
+		// set communicator only once
+		return SUCCESS;
 
-    return SUCCESS;
+	if (MPI_Comm_dup(comm, &m_communicator) != MPI_SUCCESS)
+		return MPI_ERROR;
+
+	MPI_Comm_rank(m_communicator, &m_mpiRank);
+	MPI_Comm_size(m_communicator, &m_mpiSize);
+
+	return SUCCESS;
 }
-#endif
+#endif // ASAGI_NOMPI
+
+asagi::Grid::Error grid::GridContainer::setParam(const char* name,
+	const char* value,
+	unsigned int level)
+{
+	if (strcmp(name, "value-position") == 0) {
+		if (strcmp(value, "cell-centered") == 0) {
+			m_valuePos = CELL_CENTERED;
+			return SUCCESS;
+		}
+		
+		if (strcmp(value, "vertex-centered") == 0) {
+			m_valuePos = VERTEX_CENTERED;
+			return SUCCESS;
+		}
+		
+		return INVALID_VALUE;
+	}
+	
+	return UNKNOWN_PARAM;
+}
+
+asagi::Grid::Error grid::GridContainer::open(const char* filename,
+	unsigned int level)
+{
+	assert(level < m_levels);
+	
+#ifdef ASAGI_NOMPI
+	return SUCCESS;
+#else // ASAGI_NOMPI
+	// Make sure we have our own communicator
+	if (m_noMPI)
+		return SUCCESS;
+	return setComm();
+#endif // ASAGI_NOMPI
+}
+
 /**
  * Creates a new grid according to the hints
  */
-grid::Grid* grid::NumaGridContainer::createGrid(
+grid::Grid* grid::GridContainer::createGrid(
         unsigned int hint, unsigned int id) const {
 
 #ifndef ASAGI_NOMPI
@@ -188,9 +252,9 @@ grid::Grid* grid::NumaGridContainer::createGrid(
     }
 #endif // ASAGI_NOMPI
 
-#ifndef ASAGI_NOMPI
-    //if (hint & LARGE_GRID)
-    //return new DistCacheGrid(*this, hint, id);
     return new NumaDistStaticGrid(*this, hint, id);
-#endif // ASAGI_NOMPI
 }
+
+// Fortran <-> c translation array
+fortran::PointerArray<grid::GridContainer>
+	grid::GridContainer::m_pointers;

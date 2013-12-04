@@ -39,10 +39,10 @@
 /**
  * @see Grid::Grid()
  */
-grid::NumaLocalCacheGrid::NumaLocalCacheGrid(const NumaGridContainer &container,
+grid::NumaLocalCacheGrid::NumaLocalCacheGrid(const GridContainer &container,
         unsigned int hint, unsigned int id,
         const allocator::Allocator<unsigned char> &allocator)
-: NumaGrid(container, hint),
+: Grid(container, hint),
 m_cache(0L),
 m_id(id),
 m_allocator(allocator) 

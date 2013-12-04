@@ -6,6 +6,7 @@ set( gridSources
         numalocalcachegrid.cpp
         numagrid.cpp
         numagridcontainer.cpp
+        numasimplegridcontainer.cpp
         )
 if( NOT NOMPI )
 	set( gridSources

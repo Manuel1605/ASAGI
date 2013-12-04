@@ -47,9 +47,9 @@
 /**
  * @see StaticGrid::StaticGrid()
  */
-grid::NumaDistStaticGrid::NumaDistStaticGrid(const NumaGridContainer &container,
+grid::NumaDistStaticGrid::NumaDistStaticGrid(const GridContainer &container,
         unsigned int hint, unsigned int id)
-: NumaGrid(container, hint),
+: Grid(container, hint),
 NumaLocalStaticGrid(container, hint, id, allocator::MPIAllocator<unsigned char>::allocator),
 NumaLocalCacheGrid(container, hint, id),
 m_id(id){
@@ -74,7 +74,7 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
     error = NumaLocalStaticGrid::init();
     if (error != asagi::Grid::SUCCESS)
         return error;
-
+    
     // Create the mpi window for distributed blocks
         if (MPI_Win_create(ThreadHandler::staticPtr[ThreadHandler::masterthreadId][m_id],
                 getType().getSize() * blockSize * masterBlockCount,
@@ -84,7 +84,6 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
                 &m_window) != MPI_SUCCESS)
             return asagi::Grid::MPI_ERROR;
      
-
     return asagi::Grid::SUCCESS;
 }
 
@@ -98,7 +97,6 @@ void grid::NumaDistStaticGrid::getAt(void* buf, types::Type::converter_t convert
         NumaLocalStaticGrid::getAt(buf, converter, x, y, z);
         return;
     }
-
     // This function will call getBlock, if we need to transfer the block
     NumaLocalCacheGrid::getAt(buf, converter, x, y, z);
 }
@@ -116,7 +114,6 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
     incCounter(perf::Counter::MPI);
     if (remoteRank == getMPIRank()) {
         //The block is located in the same NUMA Domain, but in the memspace of another thread.
-        
         pthread_t remoteId = getThreadId(block);
         size_t offset = getType().getSize()*blockSize*getBlockThreadOffset(block);
 

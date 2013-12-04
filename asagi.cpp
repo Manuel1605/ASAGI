@@ -34,35 +34,38 @@
  */
 
 #include <asagi.h>
-
+#ifndef NUMA_SUPPORT
 #include "grid/simplegridcontainer.h"
 #include "grid/adaptivegridcontainer.h"
-#ifdef NUMA_SUPPORT
-#include "grid/numa/threadhandler.h"
 #endif
+#include "grid/numa/threadhandler.h"
 
 // Static c++ functions
 asagi::Grid* asagi::Grid::create(Type type, unsigned int hint,
 	unsigned int levels)
 {
+#ifndef NUMA_SUPPORT
 	if (hint & ADAPTIVE)
 		return new grid::AdaptiveGridContainer(type, false, hint, levels);
 	return new grid::SimpleGridContainer(type, false, hint, levels);
+#endif
+        return 0L;
 }
-#ifdef NUMA_SUPPORT
-asagi::Grid* asagi::Grid::createThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount){
+
+asagi::Grid* asagi::Grid::createForNuma(Type type, unsigned int hint, unsigned int levels, unsigned int tCount){
         return new grid::ThreadHandler(type, hint, levels, tCount);
 }
-#endif
-
 asagi::Grid* asagi::Grid::createArray(Type basicType, unsigned int hint,
 	unsigned int levels)
 {
+#ifndef NUMA_SUPPORT
 	if (hint & ADAPTIVE)
 		return new grid::AdaptiveGridContainer(basicType, true, hint, levels);
 	return new grid::SimpleGridContainer(basicType, true, hint, levels);
-}
+#endif
+        return 0L;
 
+}
 asagi::Grid* asagi::Grid::createStruct(unsigned int count,
 	unsigned int blockLength[],
 	unsigned long displacements[],
@@ -70,29 +73,27 @@ asagi::Grid* asagi::Grid::createStruct(unsigned int count,
 	unsigned int hint,
 	unsigned int levels)
 {
+#ifndef NUMA_SUPPORT
+
 	if (hint & ADAPTIVE)
 		return new grid::AdaptiveGridContainer(count, blockLength,
 			displacements, types, hint, levels);
 	return new grid::SimpleGridContainer(count, blockLength,
 		displacements, types, hint, levels);
+#endif
+        return 0L;
 }
-
 // C interfae
 
 // Init functions
-
 grid_handle* grid_create(grid_type type, unsigned int hint, unsigned int levels)
 {
 	return asagi::Grid::create(type, hint, levels);
 }
-
-#ifdef NUMA_SUPPORT
-grid_handle* grid_create_threadhandler(grid_type type, unsigned int hint, unsigned int levels, unsigned int tcount) 
+grid_handle* grid_create_for_numa(grid_type type, unsigned int hint, unsigned int levels, unsigned int tcount) 
 {
-        return asagi::Grid::createThreadHandler(type, hint, levels, tcount);
+        return asagi::Grid::createForNuma(type, hint, levels, tcount);
 }
-#endif
-
 grid_handle* grid_create_array(grid_type basic_type, unsigned int hint, unsigned int levels)
 {
 	return asagi::Grid::createArray(basic_type, hint, levels);
@@ -107,7 +108,6 @@ grid_handle* grid_create_struct(unsigned int count,
 	return asagi::Grid::createStruct(count, blockLength, displacements,
 		types, hint, levels);
 }
-
 #ifndef ASAGI_NOMPI
 grid_error grid_set_comm(grid_handle* handle, MPI_Comm comm)
 {

@@ -8,14 +8,14 @@ program simple
   integer :: error
 
   call MPI_Init( error )
-  
-  grid_id = grid_create( GRID_FLOAT )
-
-  if( grid_open( grid_id, "../data/tohoku_1850m_bath.nc" ) /= GRID_SUCCESS ) then
+  write (*,*) 'hier' 
+  grid_id = grid_create_threadhandler( GRID_FLOAT, GRID_NO_HINT, 1, 1  )
+  write (*,*) 'da auch noch'
+  if( grid_open( grid_id, "/home/asagi/test_program/1dgrid.nc" ) /= GRID_SUCCESS ) then
     write (*,*) 'Could not load file'
     call exit(1)
   end if
-  
+  write (*,*) 'tod'
 
   write (*,*) "Range X:", grid_min_x( grid_id ), grid_max_x( grid_id )
   write (*,*) "Range Y:", grid_min_y( grid_id ), grid_max_y( grid_id )
