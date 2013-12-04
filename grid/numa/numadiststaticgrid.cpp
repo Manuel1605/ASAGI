@@ -112,17 +112,22 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
     unsigned long blockSize = getTotalBlockSize();
     int remoteRank = getBlockRank(block);
     incCounter(perf::Counter::MPI);
+    int mpiResult;
+     
     if (remoteRank == getMPIRank()) {
         //The block is located in the same NUMA Domain, but in the memspace of another thread.
         pthread_t remoteId = getThreadId(block);
         size_t offset = getType().getSize()*blockSize*getBlockThreadOffset(block);
-
+        mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, remoteRank,
+                MPI_MODE_NOCHECK, m_window);
+       assert(mpiResult == MPI_SUCCESS);
         //copy the block
         memcpy(cache, ThreadHandler::staticPtr[remoteId][m_id] + offset, getType().getSize()*blockSize);
+        mpiResult = MPI_Win_unlock(remoteRank, m_window);
+        assert(mpiResult == MPI_SUCCESS);
     } 
     else {
         unsigned long offset = getBlockOffset(block);
-        int mpiResult;
         NDBG_UNUSED(mpiResult);
         mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, remoteRank,
                 MPI_MODE_NOCHECK, m_window);
