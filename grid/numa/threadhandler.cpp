@@ -68,16 +68,22 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
  * Destructor
  */
 grid::ThreadHandler::~ThreadHandler() {
-    pthread_cond_destroy(&cond);
-    pthread_mutex_destroy(&mutex);
-    for(unsigned int i=0; i< tCount; i++){
-        delete gridHandle[i];
-    }
-    delete[] gridHandle;
-    free(threadHandle);
-    
-    // Remove from fortran <-> c translation
-    m_pointers.remove(m_id);
+        pthread_cond_destroy(&cond);
+        pthread_mutex_destroy(&mutex);
+        if(gridHandle!=NULL)
+            for(unsigned int i=0; i< tCount; i++){
+                delete gridHandle[i];
+            }
+        delete[] gridHandle;
+        gridHandle=NULL;
+        free(threadHandle);
+        threadHandle=NULL;
+
+        // Remove from fortran <-> c translation
+        if(m_id!=-1){
+                m_pointers.remove(m_id);
+                m_id=-1;
+        }
 }
 
 unsigned char grid::ThreadHandler::getByte3D(double x, double y, double z,
