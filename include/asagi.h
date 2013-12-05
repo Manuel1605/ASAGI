@@ -207,6 +207,15 @@ public:
 	 */
 	virtual Error open(const char* filename,
 		unsigned int level = 0) = 0;
+        
+        /**
+	 * @ingroup cxx_interface
+	 * 
+	 * @brief Registers a Thread. 
+	 * 
+	 * This function must be called for each Thread, and before open().
+	 */
+	virtual Error registerThread() { return asagi::Grid::SUCCESS; };
 
 	/**
 	 * @ingroup cxx_interface
@@ -473,6 +482,8 @@ public:
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
 		unsigned int hint = NO_HINT, unsigned int levels = 1);
+        
+        
          /**
       	 * @ingroup cxx_interface
 	 * 
@@ -620,6 +631,13 @@ grid_error grid_set_param(grid_handle* handle, const char* name,
  */
 grid_error grid_open(grid_handle* handle, const char* filename,
 	unsigned int level);
+
+/**
+ * @ingroup c_interface
+ * 
+ * @see asagi::Grid::registerThread()
+ */
+grid_error register_thread();
 
 /**
  * @ingroup c_interface

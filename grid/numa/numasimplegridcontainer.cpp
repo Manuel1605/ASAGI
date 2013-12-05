@@ -149,7 +149,7 @@ asagi::Grid::Error grid::SimpleGridContainer::setComm(MPI_Comm comm) {
     //No Communicator was set. I´m the first Thread. So setup the Communicator.
     if (MPI_Comm_dup(comm, &m_communicator) != MPI_SUCCESS)
         return MPI_ERROR;
-    //ThreadHandler::mpiCommunicator = m_communicator;
+
     MPI_Comm_rank(m_communicator, &m_mpiRank);
     MPI_Comm_size(m_communicator, &m_mpiSize);
 

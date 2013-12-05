@@ -161,6 +161,13 @@ module asagi
       integer( kind=c_int )                              :: grid_open_c
     end function grid_open_c
     
+    !> @internal
+    function grid_register_thread_c( grid_id ) bind( c, name="f90grid_register_thread" )
+      use, intrinsic :: iso_c_binding
+      integer( kind=c_int ), value                       :: grid_id
+      integer( kind=c_int )                              :: grid_register_thread_c
+    end function grid_register_thread_c
+    
     !> @ingroup f_interface
     !!
     !! @see asagi::Grid::getXMin()
@@ -640,6 +647,17 @@ module asagi
 
       grid_open = grid_open_c( grid_id, filename // c_null_char, l )
     end function grid_open
+    
+    !> @ingroup f_interface
+    !!
+    !! @see asagi::Grid::registerThread()
+    function grid_register_thread( grid_id )
+      use, intrinsic :: iso_c_binding
+      integer, intent(in)           :: grid_id
+      integer                       :: grid_register_thread
+
+      grid_register_thread = grid_register_thread_c( grid_id )
+    end function grid_register_thread
     
     !> @ingroup f_interface
     !!

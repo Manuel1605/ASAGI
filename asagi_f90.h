@@ -61,6 +61,7 @@ grid_error f90grid_set_param(int grid_id, const char* name,
 	const char* value, int level);
 grid_error f90grid_open(int grid_id, const char* filename,
 	int level);
+grid_error f90grid_register_thread(int grid_id);
 
 double f90grid_min_x(int grid_id);
 double f90grid_min_y(int grid_id);

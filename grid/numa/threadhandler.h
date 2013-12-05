@@ -43,6 +43,12 @@
 #include "types/type.h"
 #include <map>
 
+/** 
+ * Flag which indicates if the Source File can be closed.
+ * It is set, after the last but one has called open(). The next one, can close the file.
+ */
+extern bool g_closeFile;
+
 namespace grid
 {
 
@@ -114,8 +120,12 @@ private:
         /**
          * Counts how many Threads are already registered
          */
-        unsigned int m_count;
+        unsigned int m_registerCount;
 
+        /**
+         * Counts how many Threads have called open()
+         */
+        unsigned int m_openCount;
 protected:
 	
 	
@@ -153,6 +163,8 @@ public:
 	 */
 	virtual Error open(const char* filename, unsigned int level = 0);
 	
+        virtual Error registerThread();
+        
         double getXMin() const
 	{
 		return m_minX;

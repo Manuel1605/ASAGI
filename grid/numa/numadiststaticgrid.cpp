@@ -43,13 +43,14 @@
 #include "allocator/mpiallocator.h"
 #include "types/type.h"
 #include "threadhandler.h"
+/** Mutex for MPI Commuication */
+pthread_mutex_t block_mutex = PTHREAD_MUTEX_INITIALIZER;
+/** MPI window for communication */
+MPI_Win g_window;
 
 /**
  * @see StaticGrid::StaticGrid()
  */
-pthread_mutex_t block_mutex = PTHREAD_MUTEX_INITIALIZER;
-/** MPI window for communication */
-	MPI_Win m_window;
 grid::NumaDistStaticGrid::NumaDistStaticGrid(const GridContainer &container,
         unsigned int hint, unsigned int id)
 : Grid(container, hint),
@@ -59,8 +60,8 @@ m_id(id){
 }
 
 grid::NumaDistStaticGrid::~NumaDistStaticGrid() {
-    if (m_window != MPI_WIN_NULL)
-        MPI_Win_free(&m_window);
+    if (g_window != MPI_WIN_NULL)
+        MPI_Win_free(&g_window);
 }
 
 asagi::Grid::Error grid::NumaDistStaticGrid::init() {
@@ -85,9 +86,8 @@ asagi::Grid::Error grid::NumaDistStaticGrid::init() {
                 getType().getSize(),
                 MPI_INFO_NULL,
                 getMPICommunicator(),
-                &m_window) != MPI_SUCCESS)
+                &g_window) != MPI_SUCCESS)
             return asagi::Grid::MPI_ERROR;
-     
     return asagi::Grid::SUCCESS;
 }
 
@@ -122,24 +122,16 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
         //The block is located in the same NUMA Domain, but in the memspace of another thread.
         pthread_t remoteId = getThreadId(block);
         size_t offset = getType().getSize()*blockSize*getBlockThreadOffset(block);
- /*       mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, remoteRank,
-                MPI_MODE_NOCHECK, m_window);
-       assert(mpiResult == MPI_SUCCESS);*/
         //copy the block
-
         memcpy(cache, ThreadHandler::staticPtr[remoteId][m_id] + offset, getType().getSize()*blockSize);
-               
-
-   /*     mpiResult = MPI_Win_unlock(remoteRank, m_window);
-        assert(mpiResult == MPI_SUCCESS);*/
     } 
     else {
         unsigned long offset = getBlockOffset(block);
         NDBG_UNUSED(mpiResult);
-                    pthread_mutex_lock(&block_mutex);
-
+        
+        pthread_mutex_lock(&block_mutex);
         mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, remoteRank,
-                MPI_MODE_NOCHECK, m_window);
+                MPI_MODE_NOCHECK, g_window);
         assert(mpiResult == MPI_SUCCESS);
 
         mpiResult = MPI_Get(cache,
@@ -149,12 +141,12 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
                 offset * blockSize,
                 blockSize,
                 getType().getMPIType(),
-                m_window);
+                g_window);
         assert(mpiResult == MPI_SUCCESS);
 
-        mpiResult = MPI_Win_unlock(remoteRank, m_window);
+        mpiResult = MPI_Win_unlock(remoteRank, g_window);
         assert(mpiResult == MPI_SUCCESS);
-         pthread_mutex_unlock(&block_mutex);
+        pthread_mutex_unlock(&block_mutex);
     }
 
 

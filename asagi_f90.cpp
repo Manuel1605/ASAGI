@@ -108,6 +108,10 @@ grid_error f90grid_open(int grid_id, const char* filename,
 #endif
 
 }
+grid_error f90grid_register_thread(int grid_id)
+{
+            return grid::ThreadHandler::f2c(grid_id)->registerThread();
+}
 
 // Min/Max functions
 

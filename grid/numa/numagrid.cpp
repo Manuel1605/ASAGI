@@ -222,7 +222,7 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 #endif // __INTEL_COMPILER
 	for (unsigned char i = 0; i < 3; i++) {
 
-		if (g_blockSize[i] == 0)
+            if (g_blockSize[i] == 0)
 			// Setting default block size, if not yet set
 			g_blockSize[i] = 50;
 
@@ -273,7 +273,7 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
         // Init subclass
     }
 	error = init();
-        if (!keepFileOpen()) {
+        if (!keepFileOpen() && g_closeFile==true) {
 		// input file no longer needed, so we close
 		delete g_inputFile;
 		g_inputFile = 0L;

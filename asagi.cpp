@@ -126,6 +126,10 @@ grid_error grid_open(grid_handle* handle, const char* filename,
 {
 	return handle->open(filename, level);
 }
+grid_error grid_register_thread(grid_handle* handle)
+{
+	return handle->registerThread();
+}
 
 // Min/Max functions
 
