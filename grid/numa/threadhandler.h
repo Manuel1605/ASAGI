@@ -80,13 +80,6 @@ public:
         /** Number of threads this handler has to manage*/
         
         static unsigned int tCount;
-        /**
-         * Mutex for Thread Safety
-         */
-        static pthread_mutex_t mutex;
-        
-        /**Condition for synchronizing threads */
-        static pthread_cond_t cond;
         
 
 private:

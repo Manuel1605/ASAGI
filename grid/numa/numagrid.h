@@ -391,7 +391,7 @@ protected:
 	 */
 	unsigned long getBlocksPerThread() const
 	{
-                return getBlocksPerNode()/ThreadHandler::tCount;
+                return (getBlocksPerNode() + ThreadHandler::tCount - 1 ) / ThreadHandler::tCount;
 	}
 	
 	/**

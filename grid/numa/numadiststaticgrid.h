@@ -55,8 +55,7 @@ namespace grid
 class NumaDistStaticGrid : public NumaLocalStaticGrid, public NumaLocalCacheGrid
 {
 private:
-        /** MPI window for communication */
-	MPI_Win m_window;
+        
         
         /** ID of the grid. For Multilevelsupport */
         unsigned int m_id;

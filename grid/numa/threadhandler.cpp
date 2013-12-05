@@ -41,8 +41,8 @@
 #include <pthread.h>
 #include <iostream>
 
-pthread_mutex_t grid::ThreadHandler::mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t grid::ThreadHandler::cond  = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond  = PTHREAD_COND_INITIALIZER;
 std::map<pthread_t, unsigned char**> grid::ThreadHandler::staticPtr;
 pthread_t* grid::ThreadHandler::threadHandle;
 unsigned int grid::ThreadHandler::tCount;
@@ -163,15 +163,16 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         m_maxZ=gridMap[pthread_self()]->getZMax();
     }
     m_count++;     
-       
         //Send signal and set condition. The Masterthread has allocated the Memory
-        if(m_count==tCount)
+        if(m_count==tCount){
                 pthread_cond_broadcast(&cond);
+        }
         
         //Wait until every thread has called open()
         while(m_count<tCount){
             pthread_cond_wait(&cond, &mutex);
         }
+
     pthread_mutex_unlock(&mutex);
     return SUCCESS;  
 }
