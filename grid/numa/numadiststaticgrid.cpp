@@ -130,7 +130,7 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
         unsigned long offset = getBlockOffset(block);
         NDBG_UNUSED(mpiResult);
         
-        pthread_spin_lock(&m_threadHandle.mpiMutex);
+        //pthread_spin_lock(&m_threadHandle.mpiMutex);
         mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, remoteRank,
                 MPI_MODE_NOCHECK, m_threadHandle.mpiWindow);
         assert(mpiResult == MPI_SUCCESS);
@@ -147,7 +147,7 @@ void grid::NumaDistStaticGrid::getBlock(unsigned long block,
 
         mpiResult = MPI_Win_unlock(remoteRank, m_threadHandle.mpiWindow);
         assert(mpiResult == MPI_SUCCESS);
-        pthread_spin_unlock(&m_threadHandle.mpiMutex);
+        //pthread_spin_unlock(&m_threadHandle.mpiMutex);
     }
 
 
