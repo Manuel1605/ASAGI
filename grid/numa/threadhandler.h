@@ -331,7 +331,14 @@ public:
         bool isCloseFile() const{
             return m_closeFile;
         }
-        
+        int getBlock(unsigned char *cache,
+            int origin_count,
+            MPI_Datatype origin_datatype, 
+            int target_rank,
+            MPI_Aint target_disp,
+            int target_count,
+            MPI_Datatype target_datatype,
+            MPI_Win win);
         /**
 	 * @return The input file used for this grid
 	 */

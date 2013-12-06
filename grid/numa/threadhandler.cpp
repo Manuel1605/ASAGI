@@ -102,6 +102,7 @@ asagi::Grid::Error grid::ThreadHandler::registerThread(){
         pthread_mutex_lock(&mutexRegister);
         if(m_registerCount == 0)
                 m_masterthreadId = pthread_self();
+        
         m_threadHandle[m_registerCount] = pthread_self();
         m_gridHandle[m_registerCount] = new grid::SimpleGridContainer(*this, m_type1, false, m_hint, m_levels);
         m_staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
@@ -213,6 +214,32 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
     return SUCCESS;  
 }
 
+int grid::ThreadHandler::getBlock(unsigned char *cache,
+  int origin_count,
+  MPI_Datatype origin_datatype, 
+  int target_rank,
+  MPI_Aint target_disp,
+  int target_count,
+  MPI_Datatype target_datatype,
+  MPI_Win win){
+    int mpiResult;
+        mpiResult = MPI_Win_lock(MPI_LOCK_SHARED, target_rank,
+                MPI_MODE_NOCHECK, mpiWindow);
+        assert(mpiResult == MPI_SUCCESS);
+
+        mpiResult = MPI_Get(cache,
+                origin_count,
+                origin_datatype,
+                target_rank,
+                target_disp,
+                target_count,
+                target_datatype,
+                mpiWindow);
+        assert(mpiResult == MPI_SUCCESS);
+
+        mpiResult = MPI_Win_unlock(target_rank, mpiWindow);
+        return mpiResult;
+}
 
 
 // Fortran <-> c translation array
