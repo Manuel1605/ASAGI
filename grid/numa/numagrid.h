@@ -60,9 +60,7 @@ public:
      * A grid stores one level of detail of an adaptive grid
      * It is derived from Grid, and adds the Numa specific Functions
      */
-    /** The file that contains this grid */
-	 io::NetCdfReader *m_inputFile;
-	
+
 	/** Total number of elements in x, y and z dimension */
 	 unsigned long m_dim[3];
 	
@@ -219,14 +217,6 @@ protected:
 	int getMPISize() const
 	{
 		return m_container.getMPISize();
-	}
-	
-	/**
-	 * @return The input file used for this grid
-	 */
-	io::NetCdfReader& getInputFile() const
-	{
-		return *m_inputFile;
 	}
 	
 	/**

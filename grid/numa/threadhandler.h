@@ -82,12 +82,14 @@ public:
         
         /** Number of threads this handler has to manage*/
         unsigned int m_tCount;
+        
+        io::NetCdfReader *m_inputFile;
 #ifndef ASAGI_NOMPI        
         /** Shared Window Object */
         MPI_Win mpiWindow;
         
         /** Mutex for MPI_Get */
-        pthread_spinlock_t mpiMutex;
+        pthread_spinlock_t spinlock;
 #endif
         /** 
         * Flag which indicates if the Source File can be closed.
@@ -326,9 +328,18 @@ public:
         unsigned int getThreadCount() const{
             return m_tCount;
         }
-        bool closeFile() const{
+        bool isCloseFile() const{
             return m_closeFile;
         }
+        
+        /**
+	 * @return The input file used for this grid
+	 */
+	io::NetCdfReader& getInputFile() const
+	{
+		return *m_inputFile;
+	}
+        
        /* 
         void* getNumaDistStaticGridHandle(){
             return m_numaDistStaticGridHandle;

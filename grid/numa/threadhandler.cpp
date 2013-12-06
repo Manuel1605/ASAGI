@@ -64,9 +64,10 @@ grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int le
     m_gridHandle = new asagi::Grid*[m_tCount];
     m_threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*m_tCount);
     m_masterthreadId=0L;
+    m_inputFile=0L;
 #ifndef NOMPI
     mpiWindow = MPI_WIN_NULL;
-    pthread_spin_init(&mpiMutex, 0);
+    pthread_spin_init(&spinlock, 0);
 #endif
 }
 
@@ -79,7 +80,7 @@ grid::ThreadHandler::~ThreadHandler() {
             MPI_Win_free(&mpiWindow);
         }
 #endif
-
+        //delete m_inputFile;
         if(m_gridHandle!=NULL)
             for(unsigned int i=0; i< m_tCount; i++){
                 delete m_gridHandle[i];
@@ -182,7 +183,10 @@ asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
             if(m_openCount == m_tCount - 1){
                 m_closeFile=true; //I´m the last one. The file can be be closed, after I've loaded the values.
             }
-            m_gridMap[pthread_self()]->open(filename,level);
+            Error result;
+            result = m_gridMap[pthread_self()]->open(filename,level);
+            if(result != SUCCESS)
+                return  result;
             if(pthread_equal(m_masterthreadId, pthread_self())){
                 m_minX=m_gridMap[pthread_self()]->getXMin();
                 m_minY=m_gridMap[pthread_self()]->getYMin();

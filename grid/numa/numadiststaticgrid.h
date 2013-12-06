@@ -61,8 +61,6 @@ class NumaDistStaticGrid : public NumaLocalStaticGrid, public NumaLocalCacheGrid
 private:
         /** ID of the grid. For Multilevelsupport */
         unsigned int m_id;
-        /** MPI window for communication */
-  
 public:
 
 	NumaDistStaticGrid(const GridContainer &container, ThreadHandler &threadHandle,
@@ -79,6 +77,15 @@ protected:
 		long oldBlock,
 		unsigned long cacheIndex,
 		unsigned char* cache);
+        
+        /**
+	 * We can free all netCDF related resources, because we use MPI to
+	 * transfer blocks
+	 */
+	bool keepFileOpen() const
+	{
+		return false;
+	}
 
 };
 

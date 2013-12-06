@@ -90,7 +90,6 @@ void grid::NumaLocalCacheGrid::getAt(void* buf, types::Type::converter_t convert
     x %= getBlockSize(0);
     y %= getBlockSize(1);
     z %= getBlockSize(2);
-
     (getType().*converter)(&m_cache[getType().getSize() *
             (blockSize * index // correct block
             + (z * getBlockSize(1) + y) * getBlockSize(0) + x) // correct value inside the block
@@ -119,9 +118,11 @@ void grid::NumaLocalCacheGrid::getBlock(unsigned long block,
 
     for (int i = 0; i < MAX_DIMENSIONS; i++)
         pos[i] *= getBlockSize(i);
-
-    getType().load(getInputFile(),
+    pthread_spin_lock(&m_threadHandle.spinlock);
+    getType().load(m_threadHandle.getInputFile(),
             pos, getBlockSize(),
             cache);
+    pthread_spin_unlock(&m_threadHandle.spinlock);
+
 }
 

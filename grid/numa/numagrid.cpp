@@ -53,7 +53,6 @@ grid::Grid::Grid(const GridContainer &container, ThreadHandler &threadHandle,
 	unsigned int hint)
 	: m_container(container), m_threadHandle(threadHandle), m_variableName("z")
 {
-        m_inputFile = 0L;
 	
 	m_blockSize[0] = m_blockSize[1] = m_blockSize[2] = 0;
 	
@@ -69,7 +68,7 @@ grid::Grid::Grid(const GridContainer &container, ThreadHandler &threadHandle,
 
 grid::Grid::~Grid()
 {
-    //delete m_inputFile;
+    //delete getInputFile();
 }
 /**
  * Accepts the following parameters:
@@ -157,8 +156,10 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 	double scaling[3];
 	
 	// Open NetCDF file
-        m_inputFile = new io::NetCdfReader(filename, getMPIRank());        
-	if ((error = m_inputFile->open(m_variableName.c_str()))
+        if(pthread_equal(m_threadHandle.getMasterthreadId(), pthread_self())){
+                  m_threadHandle.m_inputFile = new io::NetCdfReader(filename, getMPIRank());
+        }
+	if ((error = m_threadHandle.getInputFile().open(m_variableName.c_str()))
 		!= asagi::Grid::SUCCESS)
             return error;
 
@@ -169,18 +170,18 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 #endif // __INTEL_COMPILER
 	for (unsigned char i = 0; i < 3; i++) {
 		// Get dimension size
-		m_dim[i] = m_inputFile->getSize(i);
+		m_dim[i] = m_threadHandle.getInputFile().getSize(i);
 	
 		// Get offset and scaling
-		m_offset[i] = m_inputFile->getOffset(i);
+		m_offset[i] = m_threadHandle.getInputFile().getOffset(i);
 	
-		scaling[i] = m_inputFile->getScaling(i);
+		scaling[i] = m_threadHandle.getInputFile().getScaling(i);
 	}
 
 	// Set time dimension
 	if (m_timeDimension == -1) {
 		// Time grid, but time dimension not specified
-		m_timeDimension = m_inputFile->getDimensions() - 1;
+		m_timeDimension = m_threadHandle.getInputFile().getDimensions() - 1;
 		logDebug(getMPIRank()) << "Assuming time dimension"
 			<< DIMENSION_NAMES[m_timeDimension];
 	}
@@ -243,16 +244,17 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 		m_blocksPerNode = 80;
 	
 	// Init type
-	if ((error = getType().check(*m_inputFile)) != asagi::Grid::SUCCESS)
+	if ((error = getType().check(m_threadHandle.getInputFile())) != asagi::Grid::SUCCESS)
 		return error;
         
         // Init subclass
 	error = init();
-        if (!keepFileOpen()) {
-		// input file no longer needed, so we close
-		delete m_inputFile;
-		m_inputFile = 0L;
-	}
+            // input file no longer needed, so we close     
+        if(!keepFileOpen() && m_threadHandle.isCloseFile()){
+                delete m_threadHandle.m_inputFile;
+                m_threadHandle.m_inputFile = 0L;
+        }
+
 	return error;
 }
 

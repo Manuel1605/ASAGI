@@ -108,7 +108,7 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
             // Get x, y and z coordinates of the first value in the block
             for (unsigned char j = 0; j < 3; j++)
                 block[j] *= getBlockSize(j);
-            getType().load(getInputFile(),
+            getType().load(m_threadHandle.getInputFile(),
                     block, getBlockSize(),
                     &m_data[getType().getSize() * blockSize * (i-m_threadHandle.getThreadRank(pthread_self())*getThreadBlockCount())]);
         }
