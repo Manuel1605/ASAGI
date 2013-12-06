@@ -38,22 +38,16 @@
 #define GRID_THREADHANDLER_H
 
 #include <asagi.h>
-
 #include "fortran/pointerarray.h"
 #include "types/type.h"
 #include <map>
 
-/** 
- * Flag which indicates if the Source File can be closed.
- * It is set, after the last but one has called open(). The next one, can close the file.
- */
-extern bool g_closeFile;
+
 
 namespace grid
 {
 
-class Grid;
-
+    class Grid;
 /**
  * A Handler class which is responsible for registering threads.
  * Threads can communicate only via this class.
@@ -70,24 +64,38 @@ public:
         /** Type of the grid */
         const asagi::Grid::Type m_type1;
         
-        /* The following static variables are there for inter Thread communication.
-         * Every Thread can access and modify this variables.
+        /**
+         * Array of Gridhandles
          */
+        asagi::Grid** m_gridHandle;
+ 
+        std::map<pthread_t, asagi::Grid*> m_gridMap;
         
-        /** Static Map. Pointer for NumaLocalStaticGrid */
-        static std::map<pthread_t, unsigned char**> staticPtr;
+        /** Pointer for NumaLocalStaticGrid */
+        std::map<pthread_t, unsigned char**> m_staticPtr;
         
         /** Id of the Masterthread */
-        static pthread_t masterthreadId;
+        pthread_t m_masterthreadId;
         
         /** Array of threadHandles */
-        static pthread_t* threadHandle;
+        pthread_t* m_threadHandle;
         
         /** Number of threads this handler has to manage*/
+        unsigned int m_tCount;
+#ifndef ASAGI_NOMPI        
+        /** Shared Window Object */
+        MPI_Win mpiWindow;
         
-        static unsigned int tCount;
+        /** Mutex for MPI_Get */
+        pthread_spinlock_t mpiMutex;
+#endif
+        /** 
+        * Flag which indicates if the Source File can be closed.
+        * It is set, after the last but one has called open(). The next one, can close the file.
+        */
+        bool m_closeFile;
         
-
+        
 private:
 	/** Id of the grid, used for the fortran <-> c interface */
 	int m_id;
@@ -109,12 +117,7 @@ private:
 	/** True if the container should skip MPI calls like MPI_Comm_dup */
 	bool m_noMPI;
                     
-        /**
-         * Array of Gridhandles
-         */
-        asagi::Grid** gridHandle;
- 
-        std::map<pthread_t, asagi::Grid*> gridMap;
+        
         
         
         /**
@@ -298,6 +301,41 @@ private:
 	static fortran::PointerArray<ThreadHandler> m_pointers;
 
 public:
+        void setStaticPtr(pthread_t threadId, unsigned char *ptr, unsigned int id){
+            m_staticPtr[threadId][id]=ptr;
+           // printf("Set Pointer: %p", m_staticPtr[threadId][id] );
+        }
+        unsigned char* getStaticPtr(pthread_t threadId, unsigned int id){
+            //printf("Get Pointer: %p", m_staticPtr[threadId][id] );
+            return m_staticPtr[threadId][id];
+        }
+        pthread_t getMasterthreadId() const{
+            return m_masterthreadId;
+        }
+        pthread_t getThreadId(unsigned int threadRank) const{
+            return m_threadHandle[threadRank];
+        }
+        unsigned int getThreadRank(pthread_t threadId) const{
+            for(unsigned int i=0; i<m_tCount; i++){
+                if(m_threadHandle[i]==threadId){
+                    return i;
+                }
+            }
+            return 0;
+        }
+        unsigned int getThreadCount() const{
+            return m_tCount;
+        }
+        bool closeFile() const{
+            return m_closeFile;
+        }
+       /* 
+        void* getNumaDistStaticGridHandle(){
+            return m_numaDistStaticGridHandle;
+        }
+        void setNumaDistStaticGridHandle(void *grid){
+            m_numaDistStaticGridHandle = grid;
+        }*/
 	/**
 	 * Converts a Fortran index to a c/c++ pointer
 	 */

@@ -39,9 +39,12 @@
 
 #include "numalocalcachegrid.h"
 #include "numalocalstaticgrid.h"
-
+#include "threadhandler.h"
 #include <mutex>
+#include <map>
 
+#include "allocator/mpiallocator.h"
+#include "types/type.h"
 #include "blocks/blockmanager.h"
 
 namespace grid
@@ -54,13 +57,15 @@ namespace grid
  */
 class NumaDistStaticGrid : public NumaLocalStaticGrid, public NumaLocalCacheGrid
 {
+         
 private:
-        
-        
         /** ID of the grid. For Multilevelsupport */
         unsigned int m_id;
+        /** MPI window for communication */
+  
 public:
-	NumaDistStaticGrid(const GridContainer &container,
+
+	NumaDistStaticGrid(const GridContainer &container, ThreadHandler &threadHandle,
 		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0);
 	virtual ~NumaDistStaticGrid();
 	

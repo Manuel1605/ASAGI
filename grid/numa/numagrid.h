@@ -50,7 +50,10 @@
 
 namespace grid {
 
-        
+    class Grid{
+
+
+public:
     /**
      * @brief Base class for a NumGrid
      * 
@@ -58,40 +61,40 @@ namespace grid {
      * It is derived from Grid, and adds the Numa specific Functions
      */
     /** The file that contains this grid */
-	extern io::NetCdfReader *g_inputFile;
+	 io::NetCdfReader *m_inputFile;
 	
 	/** Total number of elements in x, y and z dimension */
-	extern unsigned long g_dim[3];
+	 unsigned long m_dim[3];
 	
 	/** Offset of the grid */
-	extern double g_offset[3];
+	 double m_offset[3];
 	
 	/** Minimum possible coordinate in each dimension */
-	extern double g_min[3];
+	 double m_min[3];
 	/** Maximum possible coordinate in each dimension */
-	extern double g_max[3];
+	 double m_max[3];
 	
 	/**
 	 * 1/scaling in most cases (exceptions: scaling = 0
 	 * and scaling = inf), used to convert coordinates to indices
 	 */
-	extern double g_scalingInv[3];
+	 double m_scalingInv[3];
 	
 	/** Number of blocks in x, y and z dimension */
-	extern unsigned long g_blocks[3];
+	 unsigned long m_blocks[3];
 	
 	/** Number of values in x, y and z dimension in one block */
-	extern size_t g_blockSize[3];
+	 size_t m_blockSize[3];
 	
 	/** Number of cached blocks on each node */
-	extern long g_blocksPerNode;
+	 long m_blocksPerNode;
 	
 	/**
 	 * Difference between the hands of the 2-handed clock algorithm.
 	 * Subclasses my require this to initialize the
 	 * {@link blocks::BlockManager}.
 	 */
-	extern long g_handSpread;
+	 long m_handSpread;
 	
 	/**
 	 * 0, 1 or 2 if x, y or z is a time dimension (z is default if
@@ -101,21 +104,22 @@ namespace grid {
 	 * <br>
 	 * Declare as signed, to remove compiler warning
 	 */
-	extern signed char g_timeDimension;
+	 signed char m_timeDimension;
+         
 
 	/** Access counters for this grid (level) */
-	extern perf::Counter g_counter;
-	
-    class Grid{
-
-
-public:
+	perf::Counter m_counter;
+        
 	public:
-        Grid(const GridContainer &container,
+        Grid(const GridContainer &container, ThreadHandler &threadHandle,
                 unsigned int hint = asagi::Grid::NO_HINT);
         virtual ~Grid();
 	 /** The container we belong too */
 	const GridContainer &m_container;
+        
+        /** The ThreadHandle we belong too */
+         ThreadHandler &m_threadHandle;
+         
 	/** Name of the variable in the netcdf file (default: "z") */
 	 std::string m_variableName;
 	asagi::Grid::Error setParam(const char* name, const char* value);
@@ -127,42 +131,42 @@ public:
 	 */
 	double getXMin() const
 	{
-		return g_min[0];
+		return m_min[0];
 	}
 	/**
 	 * @return The minimal possible coordinate in y dimension
 	 */
 	double getYMin() const
 	{
-		return g_min[1];
+		return m_min[1];
 	}
 	/**
 	 * @return The minimal possible coordinate in z dimension
 	 */
 	double getZMin() const
 	{
-		return g_min[2];
+		return m_min[2];
 	}
 	/**
 	 * @return The maximal possible coordinate in x dimension
 	 */
 	double getXMax() const
 	{
-		return g_max[0];
+		return m_max[0];
 	}
 	/**
 	 * @return The minimal possible coordinate in y dimension
 	 */
 	double getYMax() const
 	{
-		return g_max[1];
+		return m_max[1];
 	}
 	/**
 	 * @return The minimal possible coordinate in z dimension
 	 */
 	double getZMax() const
 	{
-		return g_max[2];
+		return m_max[2];
 	}
 	
 	unsigned char getByte(double x, double y = 0, double z = 0);
@@ -179,7 +183,7 @@ public:
 	 */
 	unsigned long getCounter(const char* name)
 	{
-		return g_counter.get(name);
+		return m_counter.get(name);
 	}
 
 private:
@@ -222,7 +226,7 @@ protected:
 	 */
 	io::NetCdfReader& getInputFile() const
 	{
-		return *g_inputFile;
+		return *m_inputFile;
 	}
 	
 	/**
@@ -238,21 +242,21 @@ protected:
 	 */
 	unsigned long getXDim() const
 	{
-		return g_dim[0];
+		return m_dim[0];
 	}
 	/**
 	 * @return The number of cells in y dimension
 	 */
 	unsigned long getYDim() const
 	{
-		return g_dim[1];
+		return m_dim[1];
 	}
 	/**
 	 * @return The number of cells in z dimension
 	 */
 	unsigned long getZDim() const
 	{
-		return g_dim[2];
+		return m_dim[2];
 	}
 	
 	/**
@@ -260,7 +264,7 @@ protected:
 	 */
 	unsigned long getBlocksPerNode() const
 	{
-		return g_blocksPerNode;
+		return m_blocksPerNode;
 	}
 	
 	/**
@@ -269,7 +273,7 @@ protected:
 	 */
 	long getHandsDiff() const
 	{
-		return g_handSpread;
+		return m_handSpread;
 	}
 	
 	/**
@@ -277,7 +281,7 @@ protected:
 	 */
 	const size_t* getBlockSize() const
 	{
-		return g_blockSize;
+		return m_blockSize;
 	}
 	
 	/**
@@ -285,7 +289,7 @@ protected:
 	 */
 	size_t getBlockSize(unsigned int i) const
 	{
-		return g_blockSize[i];
+		return m_blockSize[i];
 	}
 
 	/**
@@ -293,7 +297,7 @@ protected:
 	 */
 	unsigned long getTotalBlockSize() const
 	{
-		return g_blockSize[0] * g_blockSize[1] * g_blockSize[2];
+		return m_blockSize[0] * m_blockSize[1] * m_blockSize[2];
 	}
 	
 	/**
@@ -301,7 +305,7 @@ protected:
 	 */
 	unsigned long getBlockCount() const
 	{
-		return g_blocks[0] * g_blocks[1] * g_blocks[2];
+		return m_blocks[0] * m_blocks[1] * m_blocks[2];
 	}
 	
 	/**
@@ -313,9 +317,9 @@ protected:
 	void getBlockPos(unsigned long block,
 		size_t *pos) const
 	{
-		pos[0] = block % g_blocks[0];
-		pos[1] = (block / g_blocks[0]) % g_blocks[1];
-		pos[2] = block / (g_blocks[0] * g_blocks[1]);
+		pos[0] = block % m_blocks[0];
+		pos[1] = (block / m_blocks[0]) % m_blocks[1];
+		pos[2] = block / (m_blocks[0] * m_blocks[1]);
 	}
 	
 	/**
@@ -324,9 +328,9 @@ protected:
 	unsigned long getBlockByCoords(unsigned long x, unsigned long y,
 		unsigned long z) const
 	{
-		return (((z / g_blockSize[2]) * g_blocks[1]
-			+ (y / g_blockSize[1])) * g_blocks[0])
-			+ (x / g_blockSize[0]);
+		return (((z / m_blockSize[2]) * m_blocks[1]
+			+ (y / m_blockSize[1])) * m_blocks[0])
+			+ (x / m_blockSize[0]);
 	}
 	
 	/**
@@ -373,7 +377,7 @@ protected:
 	 */
 	unsigned long getLocalBlockCount() const
 	{
-             //return (( ((getBlockCount() + getMPISize() - 1) / getMPISize())+ThreadHandler::tCount-1)/ThreadHandler::tCount)*ThreadHandler::tCount;
+             //return (( ((getBlockCount() + getMPISize() - 1) / getMPISize())+m_threadHandle.getThreadCount()-1)/m_threadHandle.getThreadCount())*m_threadHandle.getThreadCount();
             return (getBlockCount() + getMPISize() - 1) / getMPISize();
 	}
         
@@ -381,8 +385,8 @@ protected:
 	 * @return The amount of blocks that are stored on one thread.
 	 */
 	unsigned long getThreadBlockCount() const
-	{ 
-		return (getLocalBlockCount() + ThreadHandler::tCount - 1) / ThreadHandler::tCount;
+        {
+		return (getLocalBlockCount() + m_threadHandle.getThreadCount() - 1) / m_threadHandle.getThreadCount();
 	}
         
         
@@ -390,8 +394,8 @@ protected:
 	 * @return the number of blocks we should store on this thread node. For Cache.
 	 */
 	unsigned long getBlocksPerThread() const
-	{
-                return (getBlocksPerNode() + ThreadHandler::tCount - 1 ) / ThreadHandler::tCount;
+        {
+                return (getBlocksPerNode() + m_threadHandle.getThreadCount() - 1 ) / m_threadHandle.getThreadCount();
 	}
 	
 	/**
@@ -417,7 +421,7 @@ protected:
 	 * @return The ThreadID which holds the block
 	 */
         unsigned long getThreadId(unsigned long block) const {
-            return ThreadHandler::threadHandle[getBlockThreadRank(block)];
+            return m_threadHandle.getThreadId(getBlockThreadRank(block));
         }
         
 	
@@ -452,7 +456,7 @@ protected:
 	 */
 	void incCounter(perf::Counter::CounterType type)
 	{
-		g_counter.inc(type);
+		m_counter.inc(type);
 	}
 
 private:

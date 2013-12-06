@@ -74,7 +74,7 @@ private:
 	std::mutex m_slaveMutex;
 public:
     
-	NumaLocalCacheGrid(const GridContainer &container,
+	NumaLocalCacheGrid(const GridContainer &container, ThreadHandler &threadHandle,
 		unsigned int hint = asagi::Grid::NO_HINT, unsigned int id=0,
 		const allocator::Allocator<unsigned char> &allocator
 			= allocator::DefaultAllocator<unsigned char>::allocator);

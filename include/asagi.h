@@ -159,6 +159,7 @@ public:
 	 */
 	virtual Error setComm(MPI_Comm comm) = 0;
 #endif
+        
 	/**
 	 * @ingroup cxx_interface
 	 * 

@@ -42,10 +42,12 @@
 /**
  * @see GridContainer::GridContainer()
  */
-grid::SimpleGridContainer::SimpleGridContainer(Type type, bool isArray, unsigned int hint, unsigned int levels) : GridContainer(type, isArray, hint, levels) {
+grid::SimpleGridContainer::SimpleGridContainer(ThreadHandler &threadHandle, Type type, bool isArray, unsigned int hint, unsigned int levels ) : GridContainer(threadHandle, type, isArray, hint, levels) {
     m_grids = new grid::Grid*[m_levels];
-    for (unsigned int i = 0; i < levels; i++)
+    for (unsigned int i = 0; i < levels; i++){
         m_grids[i] = createGrid(hint, i);
+    }
+        
 }
 
 grid::SimpleGridContainer::~SimpleGridContainer() {

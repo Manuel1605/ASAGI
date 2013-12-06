@@ -59,8 +59,8 @@ private:
 	/** All grids we control */
 	grid::Grid **m_grids;
 public:
-	SimpleGridContainer(Type type, bool isArray = false, unsigned int hint = NO_HINT,
-		unsigned int levels = 1);
+	SimpleGridContainer(ThreadHandler &threadHandle, Type type, bool isArray, unsigned int hint,
+		unsigned int levels);
 	virtual ~SimpleGridContainer();
 	
 	Error setParam(const char* name, const char* value,

@@ -56,9 +56,9 @@
  * @param hint Any performance hints
  * @param levels The number of levels
  */
-grid::GridContainer::GridContainer(Type type, bool isArray, unsigned int hint,
+grid::GridContainer::GridContainer(ThreadHandler &threadHandle, Type type, bool isArray, unsigned int hint,
 	unsigned int levels)
-	: m_levels(levels)
+	: m_levels(levels), m_threadHandle(threadHandle)
 {
 	assert(levels > 0); // 0 levels don't make sense
 	
@@ -136,6 +136,7 @@ grid::GridContainer::GridContainer(Type type, bool isArray, unsigned int hint,
  * @param hint Any performance hints
  * @param levels The number of levels
  */
+/*
 grid::GridContainer::GridContainer(unsigned int count,
 		unsigned int blockLength[],
 		unsigned long displacements[],
@@ -167,7 +168,7 @@ grid::GridContainer::GridContainer(unsigned int count,
 	m_mpiRank = 0;
 	m_mpiSize = 1;
 }
-
+*/
 
 grid::GridContainer::~GridContainer()
 {
@@ -245,14 +246,14 @@ grid::Grid* grid::GridContainer::createGrid(
     if (hint & NOMPI) {
 #endif // ASAGI_NOMPI
         if (hint & SMALL_CACHE)
-            return new NumaLocalCacheGrid(*this, hint, id);
+            return new NumaLocalCacheGrid(*this, m_threadHandle, hint, id);
 
-        return new NumaLocalStaticGrid(*this, hint, id);
+        return new NumaLocalStaticGrid(*this, m_threadHandle, hint, id);
 #ifndef ASAGI_NOMPI
     }
 #endif // ASAGI_NOMPI
+        return new NumaDistStaticGrid(*this, m_threadHandle, hint, id);
 
-    return new NumaDistStaticGrid(*this, hint, id);
 }
 
 // Fortran <-> c translation array

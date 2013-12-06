@@ -42,18 +42,12 @@
 #include <iostream>
 
 
-/* Inatialize the global variables. These are shared with all threads. */
+/* Inatialize the global variables. These are shared by all threads. */
 pthread_mutex_t mutexOpen       =    PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutexRegister   =    PTHREAD_MUTEX_INITIALIZER;
 
 pthread_cond_t condRegister     =    PTHREAD_COND_INITIALIZER;
 pthread_cond_t condOpen         =    PTHREAD_COND_INITIALIZER;
-
-bool g_closeFile = false;
-std::map<pthread_t, unsigned char**> grid::ThreadHandler::staticPtr;
-pthread_t* grid::ThreadHandler::threadHandle;
-unsigned int grid::ThreadHandler::tCount;
-pthread_t grid::ThreadHandler::masterthreadId=0L;
 
 
 /**
@@ -62,144 +56,150 @@ pthread_t grid::ThreadHandler::masterthreadId=0L;
  * @param levels The number of levels
  * @param tCount The amount of threads
  */
-grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(type) {
+grid::ThreadHandler::ThreadHandler(Type type, unsigned int hint, unsigned int levels, unsigned int tCount) : m_levels(levels), m_hint(hint), m_type1(type), m_tCount(tCount) {
     // Prepare for fortran <-> c translation
     m_id = m_pointers.add(this);
     m_registerCount = 0;
     m_openCount = 0;
-    ThreadHandler::tCount= tCount;
-    gridHandle = new asagi::Grid*[tCount];
-    threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*tCount);
+    m_gridHandle = new asagi::Grid*[m_tCount];
+    m_threadHandle = (pthread_t*) malloc(sizeof(pthread_t)*m_tCount);
+    m_masterthreadId=0L;
+#ifndef NOMPI
+    mpiWindow = MPI_WIN_NULL;
+    pthread_spin_init(&mpiMutex, 0);
+#endif
 }
 
 /** 
  * Destructor
  */
 grid::ThreadHandler::~ThreadHandler() {
-        pthread_cond_destroy(&condOpen);
-        pthread_cond_destroy(&condRegister);
-        pthread_mutex_destroy(&mutexOpen);
-                pthread_mutex_destroy(&mutexRegister);
+#ifndef ASAGI_NOMPI
+        if(mpiWindow!=MPI_WIN_NULL){
+            MPI_Win_free(&mpiWindow);
+        }
+#endif
 
-        if(gridHandle!=NULL)
-            for(unsigned int i=0; i< tCount; i++){
-                delete gridHandle[i];
+        if(m_gridHandle!=NULL)
+            for(unsigned int i=0; i< m_tCount; i++){
+                delete m_gridHandle[i];
             }
-        delete[] gridHandle;
-        gridHandle=NULL;
-        free(threadHandle);
-        threadHandle=NULL;
+        delete[] m_gridHandle;
+        m_gridHandle=NULL;
+        free(m_threadHandle);
+        m_threadHandle=NULL;
 
         // Remove from fortran <-> c translation
         if(m_id!=-1){
                 m_pointers.remove(m_id);
                 m_id=-1;
         }
+
 }
 
 asagi::Grid::Error grid::ThreadHandler::registerThread(){
         pthread_mutex_lock(&mutexRegister);
         if(m_registerCount == 0)
-                masterthreadId = pthread_self();
-        threadHandle[m_registerCount] = pthread_self();
-        gridHandle[m_registerCount] = new grid::SimpleGridContainer(m_type1, false, m_hint, m_levels);
-        staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
-        gridMap[pthread_self()] = gridHandle[m_registerCount];
+                m_masterthreadId = pthread_self();
+        m_threadHandle[m_registerCount] = pthread_self();
+        m_gridHandle[m_registerCount] = new grid::SimpleGridContainer(*this, m_type1, false, m_hint, m_levels);
+        m_staticPtr[pthread_self()] = (unsigned char**) malloc(sizeof(unsigned char*)*m_levels);
+        m_gridMap[pthread_self()] = m_gridHandle[m_registerCount];
+        //m_gridMap[pthread_self()]->setThreadHandle(*this);
         m_registerCount++;     
         
-        if(m_registerCount==tCount){
+        if(m_registerCount==m_tCount){
             pthread_cond_broadcast(&condRegister);      //Each thread has called registerThread().
         }
         
         //Wait until every thread has called registerThread()
-        while(m_registerCount<tCount){
+        while(m_registerCount<m_tCount){
             pthread_cond_wait(&condRegister, &mutexRegister);
         }
 
         pthread_mutex_unlock(&mutexRegister);
         return SUCCESS;
-
 }
 
 unsigned char grid::ThreadHandler::getByte3D(double x, double y, double z,
         unsigned int level) {
-    return gridMap[pthread_self()]->getByte3D(x,y,z,level);
+    return m_gridMap[pthread_self()]->getByte3D(x,y,z,level);
 }
 
 int grid::ThreadHandler::getInt3D(double x, double y, double z,
         unsigned int level) {
-    return gridMap[pthread_self()]->getInt3D(x,y,z,level);
+    return m_gridMap[pthread_self()]->getInt3D(x,y,z,level);
 }
 
 long grid::ThreadHandler::getLong3D(double x, double y, double z,
         unsigned int level) {
-    return gridMap[pthread_self()]->getLong3D(x,y,z,level);
+    return m_gridMap[pthread_self()]->getLong3D(x,y,z,level);
 }
 
 float grid::ThreadHandler::getFloat3D(double x, double y, double z,
         unsigned int level) {
-    return gridMap[pthread_self()]->getFloat3D(x,y,z,level);
+    return m_gridMap[pthread_self()]->getFloat3D(x,y,z,level);
 }
 
 double grid::ThreadHandler::getDouble3D(double x, double y, double z,
         unsigned int level) {
-    return gridMap[pthread_self()]->getDouble3D(x,y,z,level);
+    return m_gridMap[pthread_self()]->getDouble3D(x,y,z,level);
 
 }
 
 void grid::ThreadHandler::getBuf3D(void* buf, double x, double y, double z,
         unsigned int level) {
-    return gridMap[pthread_self()]->getBuf3D(buf,x,y,z,level);
+    return m_gridMap[pthread_self()]->getBuf3D(buf,x,y,z,level);
 }
 
 bool grid::ThreadHandler::exportPng(const char* filename, unsigned int level) {
-    return gridMap[pthread_self()]->exportPng(filename, level);
+    return m_gridMap[pthread_self()]->exportPng(filename, level);
 }
 
 unsigned long grid::ThreadHandler::getCounter(const char* name, unsigned int level) {
-    return gridMap[pthread_self()]->getCounter(name, level);
+    return m_gridMap[pthread_self()]->getCounter(name, level);
 }
 #ifndef ASAGI_NOMPI
 
 asagi::Grid::Error grid::ThreadHandler::setComm(MPI_Comm comm) {
-     return gridMap[pthread_self()]->setComm(comm);  
+     return m_gridMap[pthread_self()]->setComm(comm);  
 }
 #endif // ASAGI_NOMPI
 
 asagi::Grid::Error grid::ThreadHandler::setParam(const char* name,
         const char* value,
         unsigned int level) {
-    return gridMap[pthread_self()]->setParam(name, value, level);
+    return m_gridMap[pthread_self()]->setParam(name, value, level);
 }
 
 
 asagi::Grid::Error grid::ThreadHandler::open(const char* filename,
         unsigned int level) {
     //check if I'm the next one.
-    while(m_openCount < tCount){
+    while(m_openCount < m_tCount){
         pthread_mutex_lock(&mutexOpen);
-        if(pthread_equal(pthread_self(), threadHandle[m_openCount])){
-            if(m_openCount == tCount - 1){
-                g_closeFile=true; //I´m the last one. The file can be be closed, after I've loaded the values.
+        if(pthread_equal(pthread_self(), m_threadHandle[m_openCount])){
+            if(m_openCount == m_tCount - 1){
+                m_closeFile=true; //I´m the last one. The file can be be closed, after I've loaded the values.
             }
-            gridMap[pthread_self()]->open(filename,level);
-            if(pthread_equal(masterthreadId, pthread_self())){
-                m_minX=gridMap[pthread_self()]->getXMin();
-                m_minY=gridMap[pthread_self()]->getYMin();
-                m_minZ=gridMap[pthread_self()]->getZMin();
-                m_maxX=gridMap[pthread_self()]->getXMax();
-                m_maxY=gridMap[pthread_self()]->getYMax();
-                m_maxZ=gridMap[pthread_self()]->getZMax();
+            m_gridMap[pthread_self()]->open(filename,level);
+            if(pthread_equal(m_masterthreadId, pthread_self())){
+                m_minX=m_gridMap[pthread_self()]->getXMin();
+                m_minY=m_gridMap[pthread_self()]->getYMin();
+                m_minZ=m_gridMap[pthread_self()]->getZMin();
+                m_maxX=m_gridMap[pthread_self()]->getXMax();
+                m_maxY=m_gridMap[pthread_self()]->getYMax();
+                m_maxZ=m_gridMap[pthread_self()]->getZMax();
             }
             m_openCount++;     
 
             //Send signal and set condition. The Masterthread has allocated the Memory
-            if(m_openCount==tCount){
+            if(m_openCount==m_tCount){
                     pthread_cond_broadcast(&condOpen);
             }
             
             //Wait until every thread has called open()
-            while(m_openCount<tCount){
+            while(m_openCount<m_tCount){
                 pthread_cond_wait(&condOpen, &mutexOpen);
             }
         }

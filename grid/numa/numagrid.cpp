@@ -49,50 +49,27 @@
  * @param container The container, this numagrid belongs to
  * @param hint Optimization hints
  */    
-
-        io::NetCdfReader *grid::g_inputFile;
-	
-	unsigned long grid::g_dim[3];
-	
-	double grid::g_offset[3];
-	
-	double grid::g_min[3];
-	double grid::g_max[3];
-
-	double grid::g_scalingInv[3];
-	
-	unsigned long grid::g_blocks[3];
-	
-	size_t grid::g_blockSize[3];
-	
-	long grid::g_blocksPerNode;
-
-	long  grid::g_handSpread;
-	signed char grid::g_timeDimension;
-        perf::Counter grid::g_counter;
-grid::Grid::Grid(const GridContainer &container,
+grid::Grid::Grid(const GridContainer &container, ThreadHandler &threadHandle,
 	unsigned int hint)
-	: m_container(container), m_variableName("z")
+	: m_container(container), m_threadHandle(threadHandle), m_variableName("z")
 {
-    if(pthread_equal(ThreadHandler::masterthreadId, pthread_self())){
-        g_inputFile = 0L;
+        m_inputFile = 0L;
 	
-	g_blockSize[0] = g_blockSize[1] = g_blockSize[2] = 0;
+	m_blockSize[0] = m_blockSize[1] = m_blockSize[2] = 0;
 	
-	g_blocksPerNode = -1;
+	m_blocksPerNode = -1;
 	
-	g_handSpread = -1;
+	m_handSpread = -1;
 
 	if (hint & asagi::Grid::HAS_TIME)
-		g_timeDimension = -1;
+		m_timeDimension = -1;
 	else
-		g_timeDimension = -2;
-    }
+		m_timeDimension = -2;
 }
 
 grid::Grid::~Grid()
 {
-    //delete g_inputFile;
+    //delete m_inputFile;
 }
 /**
  * Accepts the following parameters:
@@ -116,7 +93,7 @@ asagi::Grid::Error grid::Grid::setParam(const char* name, const char* value)
 	}
 	
 	if (strcmp(name, "time-dimension") == 0) {
-		if (g_timeDimension <= -2)
+		if (m_timeDimension <= -2)
 			// HAS_TIME hint was not specified
 			//-> ignore this variable
 			return asagi::Grid::SUCCESS;
@@ -124,7 +101,7 @@ asagi::Grid::Error grid::Grid::setParam(const char* name, const char* value)
 		// Value should be x, y or z
 		for (signed char i = 0; i < 3; i++) {
 			if (strcmp(value, DIMENSION_NAMES[i]) == 0) {
-				g_timeDimension = i;
+				m_timeDimension = i;
 				return asagi::Grid::SUCCESS;
 			}
 		}
@@ -142,20 +119,20 @@ asagi::Grid::Error grid::Grid::setParam(const char* name, const char* value)
 				if (blockSize <= 0)
 					return asagi::Grid::INVALID_VALUE;
 				
-				g_blockSize[i] = blockSize;
+				m_blockSize[i] = blockSize;
 				return asagi::Grid::SUCCESS;
 			}
 		}
 	}
 	
 	if (strcmp(name, "block-cache-size") == 0) {
-		g_blocksPerNode = atol(value);
+		m_blocksPerNode = atol(value);
 		
-		if (g_blocksPerNode < 0)
+		if (m_blocksPerNode < 0)
 			// We set a correct value later
 			return asagi::Grid::INVALID_VALUE;
 		
-		if ((g_blocksPerNode == 0) && (getMPISize() > 1))
+		if ((m_blocksPerNode == 0) && (getMPISize() > 1))
 			logWarning() << "Empty block cache size may lead to failures!";
 		
 		return asagi::Grid::SUCCESS;
@@ -163,7 +140,7 @@ asagi::Grid::Error grid::Grid::setParam(const char* name, const char* value)
 	
 	if ((strcmp(name, "cache-hand-spread") == 0)
 		|| (strcmp(name, "cache-hand-difference") == 0)) { // Obsolete name
-		g_handSpread = atol(value);
+		m_handSpread = atol(value);
 		
 		return asagi::Grid::SUCCESS;
 	}
@@ -177,12 +154,11 @@ asagi::Grid::Error grid::Grid::setParam(const char* name, const char* value)
 asagi::Grid::Error grid::Grid::open(const char* filename)
 {
     asagi::Grid::Error error;
-    if(pthread_equal(ThreadHandler::masterthreadId, pthread_self())){
 	double scaling[3];
 	
 	// Open NetCDF file
-	g_inputFile = new io::NetCdfReader(filename, getMPIRank());
-	if ((error = g_inputFile->open(m_variableName.c_str()))
+        m_inputFile = new io::NetCdfReader(filename, getMPIRank());        
+	if ((error = m_inputFile->open(m_variableName.c_str()))
 		!= asagi::Grid::SUCCESS)
             return error;
 
@@ -193,27 +169,27 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 #endif // __INTEL_COMPILER
 	for (unsigned char i = 0; i < 3; i++) {
 		// Get dimension size
-		g_dim[i] = g_inputFile->getSize(i);
+		m_dim[i] = m_inputFile->getSize(i);
 	
 		// Get offset and scaling
-		g_offset[i] = g_inputFile->getOffset(i);
+		m_offset[i] = m_inputFile->getOffset(i);
 	
-		scaling[i] = g_inputFile->getScaling(i);
+		scaling[i] = m_inputFile->getScaling(i);
 	}
 
 	// Set time dimension
-	if (g_timeDimension == -1) {
+	if (m_timeDimension == -1) {
 		// Time grid, but time dimension not specified
-		g_timeDimension = g_inputFile->getDimensions() - 1;
+		m_timeDimension = m_inputFile->getDimensions() - 1;
 		logDebug(getMPIRank()) << "Assuming time dimension"
-			<< DIMENSION_NAMES[g_timeDimension];
+			<< DIMENSION_NAMES[m_timeDimension];
 	}
 	
 	// Set block size in time dimension
-	if ((g_timeDimension >= 0) && (g_blockSize[g_timeDimension] == 0)) {
+	if ((m_timeDimension >= 0) && (m_blockSize[m_timeDimension] == 0)) {
 		logDebug(getMPIRank()) << "Setting block size in time dimension"
-			<< DIMENSION_NAMES[g_timeDimension] << "to 1";
-		g_blockSize[g_timeDimension] = 1;
+			<< DIMENSION_NAMES[m_timeDimension] << "to 1";
+		m_blockSize[m_timeDimension] = 1;
 	}
 	
 	// Set default block size and calculate number of blocks
@@ -222,31 +198,31 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 #endif // __INTEL_COMPILER
 	for (unsigned char i = 0; i < 3; i++) {
 
-            if (g_blockSize[i] == 0)
+            if (m_blockSize[i] == 0)
 			// Setting default block size, if not yet set
-			g_blockSize[i] = 50;
+			m_blockSize[i] = 50;
 
 		// A block size large than the dimension does not make any sense
 
-		if (g_dim[i] < g_blockSize[i]) {
+		if (m_dim[i] < m_blockSize[i]) {
 			logDebug(getMPIRank()) << "Shrinking" << DIMENSION_NAMES[i]
-				<< "block size to" << g_dim[i];
-			g_blockSize[i] = g_dim[i];
+				<< "block size to" << m_dim[i];
+			m_blockSize[i] = m_dim[i];
 		}
-               // std::cout << "Dim: " << g_dim[i] << " Blocksize: " << g_blockSize[i] << std::endl;
+               // std::cout << "Dim: " << m_dim[i] << " Blocksize: " << m_blockSize[i] << std::endl;
 
 		// Integer way of rounding up
-		g_blocks[i] = (g_dim[i] + g_blockSize[i] - 1) / g_blockSize[i];
-		g_scalingInv[i] = getInvScaling(scaling[i]);
+		m_blocks[i] = (m_dim[i] + m_blockSize[i] - 1) / m_blockSize[i];
+		m_scalingInv[i] = getInvScaling(scaling[i]);
 
 		// Set min/max
 		if (std::isinf(scaling[i])) {
-			g_min[i] = -std::numeric_limits<double>::infinity();
-			g_max[i] = std::numeric_limits<double>::infinity();
+			m_min[i] = -std::numeric_limits<double>::infinity();
+			m_max[i] = std::numeric_limits<double>::infinity();
 		} else {
 			// Warning: min and max are inverted of scaling is negative
-			double min = g_offset[i];
-			double max = g_offset[i] + scaling[i] * (g_dim[i] - 1);
+			double min = m_offset[i];
+			double max = m_offset[i] + scaling[i] * (m_dim[i] - 1);
 
 			if (m_container.getValuePos()
 				== GridContainer::CELL_CENTERED) {
@@ -255,28 +231,27 @@ asagi::Grid::Error grid::Grid::open(const char* filename)
 				max += scaling[i] * (0.5 - NUMERIC_PRECISION);
 			}
 
-			g_min[i] = std::min(min, max);
-			g_max[i] = std::max(min, max);
+			m_min[i] = std::min(min, max);
+			m_max[i] = std::max(min, max);
 		}
 
 	}
 	
 	// Set default cache size
-	if (g_blocksPerNode < 0)
+	if (m_blocksPerNode < 0)
 		// Default value
-		g_blocksPerNode = 80;
+		m_blocksPerNode = 80;
 	
 	// Init type
-	if ((error = getType().check(*g_inputFile)) != asagi::Grid::SUCCESS)
+	if ((error = getType().check(*m_inputFile)) != asagi::Grid::SUCCESS)
 		return error;
         
         // Init subclass
-    }
 	error = init();
-        if (!keepFileOpen() && g_closeFile==true) {
+        if (!keepFileOpen()) {
 		// input file no longer needed, so we close
-		delete g_inputFile;
-		g_inputFile = 0L;
+		delete m_inputFile;
+		m_inputFile = 0L;
 	}
 	return error;
 }
@@ -359,15 +334,15 @@ bool grid::Grid::exportPng(const char* filename)
 void grid::Grid::getAt(void* buf, types::Type::converter_t converter,
 	double x, double y, double z)
 {
-	x = round((x - g_offset[0]) * g_scalingInv[0]);
-	y = round((y - g_offset[1]) * g_scalingInv[1]);
-	z = round((z - g_offset[2]) * g_scalingInv[2]);
+	x = round((x - m_offset[0]) * m_scalingInv[0]);
+	y = round((y - m_offset[1]) * m_scalingInv[1]);
+	z = round((z - m_offset[2]) * m_scalingInv[2]);
 
 	assert(x >= 0 && x < getXDim()
 		&& y >= 0 && y < getYDim()
 		&& z >= 0 && z < getZDim());
 
-	g_counter.inc(perf::Counter::ACCESS);
+	m_counter.inc(perf::Counter::ACCESS);
 
 	getAt(buf, converter, static_cast<unsigned long>(x),
 		static_cast<unsigned long>(y), static_cast<unsigned long>(z));

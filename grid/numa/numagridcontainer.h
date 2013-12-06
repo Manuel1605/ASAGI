@@ -37,7 +37,7 @@
 #ifndef NUMAGRIDCONTAINER_H
 #define	NUMAGRIDCONTAINER_H
 #include <asagi.h>
-
+#include "threadhandler.h"
 #include "fortran/pointerarray.h"
 #include "types/type.h"
 
@@ -74,6 +74,9 @@ protected:
         #ifndef ASAGI_NOMPI
 	/** The communicator we use */
 	MPI_Comm m_communicator;
+        
+        /** The handle we belongs to */
+        ThreadHandler &m_threadHandle;
 #endif // ASAGI_NOMPI
 	/** Rank of this process */
 	int m_mpiRank;
@@ -96,14 +99,14 @@ protected:
 	/** Value Position (cell-centered || vertex-centered) */
 	ValuePos m_valuePos;
 public:
-	GridContainer(Type type, bool isArray = false,
+	GridContainer(ThreadHandler &threadHandle, Type type=FLOAT,  bool isArray = false,
 		unsigned int hint = NO_HINT,
 		unsigned int levels = 1);
-	GridContainer(unsigned int count,
+	/*GridContainer(unsigned int count,
 		unsigned int blockLength[],
 		unsigned long displacements[],
 		asagi::Grid::Type types[],
-		unsigned int hint = NO_HINT, unsigned int levels = 1);
+		unsigned int hint = NO_HINT, unsigned int levels = 1);*/
 	virtual ~GridContainer();
 	
 #ifndef ASAGI_NOMPI

@@ -40,35 +40,30 @@
 #include <stdio.h>
 
 
-unsigned int g_thread;
-
 /**
  * @see Grid::Grid()
  */
 
-grid::NumaLocalStaticGrid::NumaLocalStaticGrid(const GridContainer &container,
+grid::NumaLocalStaticGrid::NumaLocalStaticGrid(const GridContainer &container, ThreadHandler &threadHandle, 
         unsigned int hint, unsigned int id, 
         const allocator::Allocator<unsigned char> &allocator)
-: Grid(container, hint),
+: Grid(container, threadHandle, hint),
         m_id(id),
  m_allocator(allocator) {
     m_data = 0L;
 }
 
 grid::NumaLocalStaticGrid::~NumaLocalStaticGrid() {
-   // if(pthread_equal(ThreadHandler::masterthreadId, pthread_self()))
+   // if(pthread_equal(m_threadHandle.getMasterthreadId(), pthread_self()))
     //    m_allocator.free(ThreadHandler::staticPtr[ThreadHandler::masterthreadId][m_id]);
 }
 
 asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
-    if(pthread_equal(ThreadHandler::masterthreadId, pthread_self()))
-        g_thread=0;
     unsigned long blockSize = getTotalBlockSize();
     size_t block[3];
-    unsigned long masterBlockCount = getThreadBlockCount()*ThreadHandler::tCount;
-    
+    unsigned long masterBlockCount = getThreadBlockCount()*m_threadHandle.getThreadCount();
     //the first thread allocates the memory.
-    if (g_thread==0) {
+    if (m_threadHandle.getThreadRank(pthread_self())==0) {
         asagi::Grid::Error error;
         error = m_allocator.allocate(getType().getSize() * blockSize * masterBlockCount, m_data);
         if (error != asagi::Grid::SUCCESS)
@@ -89,17 +84,20 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
                     block, getBlockSize(),
                     &m_data[getType().getSize() * blockSize * i]);
         }*/
-        ThreadHandler::staticPtr[pthread_self()][m_id] = m_data;
+        //m_threadHandle.m_staticPtr[pthread_self()][m_id]=m_data;
+       // std::cout << "Thread: " << pthread_self() << " Pointer: " << &m_data;
+        m_threadHandle.setStaticPtr(pthread_self(), m_data, m_id);
     }
     else {
         //The memory was already allocated by the masterthread.
    
                 //Simply shift the Pointer in the right space.
-                m_data = (ThreadHandler::staticPtr[ThreadHandler::masterthreadId])[m_id] + (getType().getSize() * blockSize * g_thread * getThreadBlockCount());
-                (ThreadHandler::staticPtr[pthread_self()])[m_id]=m_data;
+                m_data = m_threadHandle.getStaticPtr(m_threadHandle.getMasterthreadId(), m_id) + (getType().getSize() * blockSize * m_threadHandle.getThreadRank(pthread_self()) * getThreadBlockCount());
+              //  std::cout << "Thread: " << pthread_self() << " Pointer: " << &m_data;
+                m_threadHandle.setStaticPtr(pthread_self(), m_data, m_id);
     }
     // Load the blocks from the file, which we control
-        for (unsigned long i = g_thread*getThreadBlockCount(); i < (g_thread*getThreadBlockCount()+getThreadBlockCount()); i++) {
+        for (unsigned long i = m_threadHandle.getThreadRank(pthread_self())*getThreadBlockCount(); i < (m_threadHandle.getThreadRank(pthread_self())*getThreadBlockCount()+getThreadBlockCount()); i++) {
             if (getGlobalBlock(i) >= getBlockCount()){
                 // Last process(es) may control less blocks
                 break;
@@ -112,11 +110,9 @@ asagi::Grid::Error grid::NumaLocalStaticGrid::init() {
                 block[j] *= getBlockSize(j);
             getType().load(getInputFile(),
                     block, getBlockSize(),
-                    &m_data[getType().getSize() * blockSize * (i-g_thread*getThreadBlockCount())]);
+                    &m_data[getType().getSize() * blockSize * (i-m_threadHandle.getThreadRank(pthread_self())*getThreadBlockCount())]);
         }
     
-    //I have finished. Set the counter for the next Thread.
-    g_thread++;
     return asagi::Grid::SUCCESS;
 }
 
