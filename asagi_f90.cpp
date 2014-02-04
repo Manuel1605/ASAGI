@@ -131,7 +131,7 @@ double f90grid_min_y(int grid_id)
         return grid::GridContainer::f2c(grid_id)->getYMin();
 #endif
 }
-double f90grid_min_z ( int grid_id )
+double f90grid_min_z (int grid_id)
 {
 	#ifdef NUMA_SUPPORT
         return grid::ThreadHandler::f2c(grid_id)->getZMin();
@@ -155,7 +155,7 @@ double f90grid_max_y(int grid_id)
         return grid::GridContainer::f2c(grid_id)->getYMax();
 #endif
 }
-double f90grid_max_z ( int grid_id )
+double f90grid_max_z (int grid_id)
 {
 #ifdef NUMA_SUPPORT
         return grid::ThreadHandler::f2c(grid_id)->getZMax();
@@ -164,7 +164,20 @@ double f90grid_max_z ( int grid_id )
 #endif
 }
 
-int f90grid_var_size ( int grid_id )
+double f90grid_delta_x(int grid_id)
+{
+	return grid::GridContainer::f2c(grid_id)->getXDelta();
+}
+double f90grid_delta_y(int grid_id)
+{
+	return grid::GridContainer::f2c(grid_id)->getYDelta();
+}
+double f90grid_delta_z(int grid_id)
+{
+	return grid::GridContainer::f2c(grid_id)->getZDelta();
+}
+
+int f90grid_var_size (int grid_id)
 {
 #ifdef NUMA_SUPPORT
     	return grid::ThreadHandler::f2c(grid_id)->getVarSize();
